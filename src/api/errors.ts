@@ -146,6 +146,16 @@ export function describeError(error: unknown): { message: string; retryable: boo
     return { message: error.message, retryable: error.retryable };
   }
 
+  /**
+   * A plain Error still carries a sentence somebody wrote — a missing
+   * configuration variable, a failed assertion. Showing "Something went wrong"
+   * over the top of it hides the one useful thing on the screen, which is
+   * exactly what the person debugging it needs.
+   */
+  if (error instanceof Error && error.message.length > 0) {
+    return { message: error.message, retryable: false };
+  }
+
   return { message: 'Something went wrong.', retryable: true };
 }
 

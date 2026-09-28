@@ -28,6 +28,12 @@
  *   column; 48px on a 360dp phone is four words to a line. The rest of the scale
  *   is shifted to match, and `display` is kept for a hero that does not exist yet.
  *
+ * `borderRadius` carries `none` and `full` alongside the guide's 8/12/16/24.
+ * Overriding Tailwind's scale replaces it rather than extending it, so leaving
+ * them out silently deleted `rounded-full` — and the guide asks for exactly that
+ * on pill CTAs and the search field. A missing radius class is invisible in
+ * review: it compiles, it lints, and the corner is just wrong.
+ *
  * Poppins is the web app's face and is not bundled here. A font file is close to
  * a megabyte before first paint, Phase 1 has not measured whether that is worth
  * it on a slow connection, and the system face is honest in the meantime.

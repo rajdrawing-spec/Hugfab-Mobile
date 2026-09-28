@@ -17,6 +17,9 @@ export type Gender = 'women' | 'men' | 'unisex' | 'kids';
 export type Availability =
   'in_stock' | 'out_of_stock' | 'preorder' | 'discontinued' | 'unknown';
 
+export type ReturnStatus =
+  'requested' | 'approved' | 'rejected' | 'received' | 'refunded';
+
 export type FulfilmentStatus =
   | 'awaiting'
   | 'confirmed'
@@ -196,6 +199,8 @@ export interface OrderLine {
   fulfilmentStatus: FulfilmentStatus;
   trackingReference: string | null;
   carrier: string | null;
+  /** The most recent return on this line, if any. */
+  returnStatus: ReturnStatus | null;
   /** Server-computed. A client that guesses offers a button the database refuses. */
   canReturn: boolean;
 }
