@@ -110,3 +110,32 @@ phone is on another network.
    production `https://hugfab.com`.
 4. Sign in, sign out, and a session that survives a cold start.
 5. Every ⚠ screen states what is missing instead of pretending.
+
+---
+
+## Status, as built
+
+What has been verified, and what has not. The distinction matters: a container
+cannot scan a QR code.
+
+**Verified**
+
+- `npx tsc --noEmit` and `npx eslint .` clean.
+- `npx expo export --platform android` bundles (5.2MB Hermes bytecode) — so the
+  module graph, Babel, NativeWind and Reanimated all wire up.
+- Every route rendered in Chromium through the web target, with no console or page
+  errors: home, search, wishlist, bag, account, product, offers, sign in, sign up.
+  Tokens apply, the tab bar draws, and the error and sign-in states render.
+
+**Not verified**
+
+- Expo Go on a real Android device. This is the one gate that needs a phone.
+- Anything behind a live API. The container cannot reach `hugfab.com`, so every
+  screen was exercised against a failing request — which proves the error paths
+  and proves nothing about the success paths. The first device run should be
+  pointed at production and watched for shape mismatches.
+- The write paths, which have no endpoint yet (`docs/API-GAPS.md`).
+
+**Web is not a target.** `react-native-web` is not a dependency; it was installed
+temporarily to run the render check above and removed afterwards. The `web` key in
+`app.json` is what makes that check possible and nothing more.
