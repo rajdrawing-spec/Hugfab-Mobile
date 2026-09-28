@@ -17,12 +17,12 @@ module.exports = defineConfig([
       'no-restricted-syntax': [
         'error',
         {
-          selector: "Literal[value=/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/]",
+          selector: 'Literal[value=/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/]',
           message:
             'No hex colours in components. Use a NativeWind token class (bg-surface) or color() from @/theme.',
         },
         {
-          selector: "Literal[value=/\\u20B9/]",
+          selector: 'Literal[value=/\\u20B9/]',
           message:
             'No currency symbols. Format money with formatMoney() from @/lib/money.',
         },
