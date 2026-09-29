@@ -114,6 +114,21 @@ export default function OrderScreen(): React.JSX.Element {
   );
 }
 
+/**
+ * A shipping provider's own status word, made readable.
+ *
+ * `DetailShipment.status` is a free string from the courier — there is no enum
+ * and no label map in the web app to borrow, so this does the one safe thing:
+ * `in_transit` becomes "In transit". Inventing a friendlier vocabulary would
+ * mean guessing at statuses this app has never seen, and a courier's word is
+ * the word a shopper will see on the courier's own page.
+ */
+function readableStatus(status: string): string {
+  const words = status.replace(/[_-]+/g, ' ').trim();
+  if (words.length === 0) return 'Shipped';
+  return words.charAt(0).toUpperCase() + words.slice(1).toLowerCase();
+}
+
 /** One parcel: who is carrying it, its reference, and where it has got to. */
 function ShipmentRow({ shipment }: { shipment: OrderShipment }): React.JSX.Element {
   return (
@@ -122,7 +137,7 @@ function ShipmentRow({ shipment }: { shipment: OrderShipment }): React.JSX.Eleme
         <Text step="small" weight="semibold">
           {shipment.courierName}
         </Text>
-        <Badge label={shipment.status} tone="info" />
+        <Badge label={readableStatus(shipment.status)} tone="info" />
       </View>
 
       <Text step="caption" tone="muted" className="mt-1">
