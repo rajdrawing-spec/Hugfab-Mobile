@@ -1,18 +1,15 @@
 /**
- * The bottom bar: **four destinations around a raised action button**, which is
- * what `docs/ui-ux-guide.md` §3 specifies and what the web app models separately
- * as `MOBILE_ACTION` — the raised control is not a destination, so it is not a
- * tab, and the first version of this app got that wrong by making Search the
- * fifth of five equal tabs.
+ * The bottom bar: **Home · Discover · AI · Community · Account**, with AI raised.
  *
- * The destinations differ from the web app's mobile bar (Home · Discover ·
- * Community · Account) because Discover and Community are not in Phase 1. The
- * shape is the guide's; the contents are what this app actually has.
+ * Five destinations, per the mobile brief §35, and they are all destinations —
+ * which is why Search and the Bag are not here. Both are actions on whatever you
+ * are looking at, and both live in `AppHeader` instead.
  *
- * The raised button is Search, per §1: *search is the front door*. Home also
- * carries a full-width search bar, which is the same principle stated twice on
- * purpose — the bar is for browsing into, the button is for reaching from
- * anywhere.
+ * AI is raised rather than Search. The web app's mobile bar lifts Search because
+ * a website's header already carries the field and the bar is compensating for
+ * losing it; here the header still has it. What the raised control should be is
+ * whatever the product wants people to try, and the brief is unambiguous that
+ * HugFab is *discovery + AI styling + price comparison* rather than a catalogue.
  */
 
 import { View } from 'react-native';
@@ -28,13 +25,13 @@ type IconName = keyof typeof Ionicons.glyphMap;
 /** Filled when active, outline when not — the cheapest legible state change. */
 const ICONS: Record<string, { on: IconName; off: IconName }> = {
   index: { on: 'home', off: 'home-outline' },
-  wishlist: { on: 'heart', off: 'heart-outline' },
-  cart: { on: 'bag', off: 'bag-outline' },
+  discover: { on: 'compass', off: 'compass-outline' },
+  community: { on: 'people', off: 'people-outline' },
   account: { on: 'person', off: 'person-outline' },
 };
 
-/** The raised control, which is not a destination and so is not in this list. */
-const ACTION_ROUTE = 'search';
+/** The raised control. Still a destination here, just the emphasised one. */
+const ACTION_ROUTE = 'stylist';
 
 export function TabBar({
   state,
@@ -102,16 +99,23 @@ export function TabBar({
           {/* Lifted above the bar's own top edge, which is what makes it read as
               an action rather than a fifth tab. */}
           <Touchable
-            accessibilityRole="button"
-            accessibilityLabel="Search"
+            accessibilityRole="tab"
+            accessibilityState={{
+              selected: state.routes[state.index]?.name === ACTION_ROUTE,
+            }}
+            accessibilityLabel="AI Stylist"
             onPress={() => navigation.navigate(action.name)}
             style={{ ...elevation('md'), shadowColor: color('primary') }}
             className="bg-primary -mt-6 h-14 w-14 items-center justify-center rounded-full"
           >
-            <Ionicons name="search" size={24} color={color('primary-foreground')} />
+            <Ionicons name="sparkles" size={23} color={color('primary-foreground')} />
           </Touchable>
-          <Text step="caption" tone="muted" className="mt-0.5">
-            Search
+          <Text
+            step="caption"
+            tone={state.routes[state.index]?.name === ACTION_ROUTE ? 'primary' : 'muted'}
+            className="mt-0.5"
+          >
+            AI
           </Text>
         </View>
       ) : null}

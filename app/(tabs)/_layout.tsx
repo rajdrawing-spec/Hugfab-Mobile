@@ -1,13 +1,17 @@
 /**
- * The tab navigator. Its bar is `src/components/tab-bar.tsx` — four destinations
- * around a raised Search button, per `docs/ui-ux-guide.md` §3.
+ * The tab navigator: Home · Discover · AI · Community · Account, per the mobile
+ * brief §35, with AI raised by `src/components/tab-bar.tsx`.
  *
- * Route order here is the order they sit in the bar, and `search` is placed in
- * the middle so the custom bar can lift it out: the bar filters it from the
- * destinations and draws it as the action.
+ * Route order here is the order they sit in the bar, and `stylist` is placed in
+ * the middle so the custom bar can lift it out.
  *
- * The Bag is labelled "Bag" and routed at `cart` — the word is the web app's, the
- * route matches the API.
+ * Search, the Bag and Wishlist are **not** tabs. Search and the Bag are global
+ * actions in `AppHeader`; Wishlist is reached from Account, which is where the
+ * brief puts it. All three are still routes — they are simply not destinations
+ * in the bar.
+ *
+ * Every tab hides the navigator's own header and draws `AppHeader` instead, so
+ * the wordmark, search, bell and bag are identical on every surface.
  */
 
 import { Tabs } from 'expo-router';
@@ -19,27 +23,15 @@ export default function TabsLayout(): React.JSX.Element {
     <Tabs
       tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
-        headerStyle: { backgroundColor: color('surface') },
-        headerTintColor: color('text'),
-        headerShadowVisible: false,
-        headerTitleStyle: { fontFamily: 'Poppins_600SemiBold', fontSize: 17 },
+        headerShown: false,
         sceneStyle: { backgroundColor: color('background') },
       }}
     >
-      <Tabs.Screen name="index" options={{ headerShown: false, tabBarLabel: 'Home' }} />
-      <Tabs.Screen
-        name="wishlist"
-        options={{ title: 'Wishlist', tabBarLabel: 'Wishlist' }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{ headerShown: false, tabBarLabel: 'Search' }}
-      />
-      <Tabs.Screen name="cart" options={{ title: 'Bag', tabBarLabel: 'Bag' }} />
-      <Tabs.Screen
-        name="account"
-        options={{ title: 'Account', tabBarLabel: 'Account' }}
-      />
+      <Tabs.Screen name="index" options={{ tabBarLabel: 'Home' }} />
+      <Tabs.Screen name="discover" options={{ tabBarLabel: 'Discover' }} />
+      <Tabs.Screen name="stylist" options={{ tabBarLabel: 'AI' }} />
+      <Tabs.Screen name="community" options={{ tabBarLabel: 'Community' }} />
+      <Tabs.Screen name="account" options={{ tabBarLabel: 'Account' }} />
     </Tabs>
   );
 }

@@ -75,6 +75,9 @@ export default function RootLayout(): React.JSX.Element {
             >
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="dashboard" options={{ title: 'Console' }} />
+              <Stack.Screen name="search" options={{ headerShown: false }} />
+              <Stack.Screen name="wishlist" options={{ title: 'My Wishlist' }} />
+              <Stack.Screen name="cart" options={{ title: 'My Bag' }} />
               <Stack.Screen name="product/[slug]" options={{ title: '' }} />
               <Stack.Screen name="offers/[slug]" options={{ title: 'All offers' }} />
               <Stack.Screen

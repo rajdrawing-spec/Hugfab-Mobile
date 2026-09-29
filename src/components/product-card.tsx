@@ -58,8 +58,19 @@ export function ProductCard({ product }: { product: ProductSummary }): React.JSX
           <View className="absolute right-2 top-2">
             <WishlistHeart productId={product.id} title={product.title} />
           </View>
+
+          {/* Discount top-left, as the brief and the reference both place it. It
+              is the server's percentage, never derived from the two prices. */}
+          {typeof offer?.discountPercent === 'number' ? (
+            <View className="bg-primary absolute left-2 top-2 rounded-sm px-1.5 py-0.5">
+              <Text step="caption" tone="primary-foreground" weight="bold">
+                {`-${String(offer.discountPercent)}%`}
+              </Text>
+            </View>
+          ) : null}
+
           {product.isMock ? (
-            <View className="absolute left-2 top-2">
+            <View className="absolute bottom-2 left-2">
               <Badge label="Sample data" tone="warning" />
             </View>
           ) : null}

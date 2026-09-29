@@ -67,7 +67,15 @@ it, so the classes and the style objects cannot drift.
 `text-h3`, `rounded-lg`. If the token you want is missing, add it to
 `tokens.json` first.
 
-Screens and patterns come from **HUGFAB-AI `docs/ui-ux-guide.md`**, which is as
+The brand colour is **pink `#D81B60`**, not the web app's red and not the
+reference image's `#E91E63`. That pink is 4.35:1 and fails WCAG AA; this one is
+4.95:1 and clears it by more than the red did. `docs/design-system.md` records
+that the pink the red replaced also failed, so re-run the contrast before
+nudging this brighter. `error` stays red, because a pink error is
+indistinguishable from a pink CTA.
+
+Screens and patterns come from **HUGFAB-AI `docs/ui-ux-guide.md`** and the 2026
+mobile brief (`docs/PLAN.md`), which is as
 binding as the token file and was under-read the first time: the search bar's
 camera, the category rail, the wishlist heart on a card, the retailer shown with
 its logo and name, and the bottom bar's raised action button are all specified
@@ -93,6 +101,13 @@ outbound buy link — PRD §74 and the guide's §6, not a footer convention.
 Every list has three states and all three are built at the same time: skeleton
 (never a spinner), empty (say what to do next), error (say what happened and
 offer Retry).
+
+## Navigation
+
+Five destinations: **Home · Discover · AI · Community · Account**, with AI
+raised. Search, the Bag and the Wishlist are deliberately *not* tabs — the first
+two are actions on whatever you are looking at and live in `AppHeader`, and the
+Wishlist is reached from Account. They are still routes.
 
 ## Expo Go
 

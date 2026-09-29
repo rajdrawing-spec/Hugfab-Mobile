@@ -291,6 +291,113 @@ merchandising an admin arranged.
 
 ---
 
+## 8. What the mobile brief asks for and the API cannot answer
+
+The 2026 mobile brief and its reference screens ask for several things the
+catalogue does not hold. Each is listed here rather than approximated, because
+every one of them would be a number or a claim invented on the client — which is
+the single rule `CLAUDE.md` exists to enforce.
+
+### 8.1 Ratings and reviews — on every card in the reference
+
+`★ 4.5`, `★ 4.6 (1.2K reviews)`. There is **no rating anywhere in the
+catalogue**: not on `products`, not in `ProductSummary`, not in the database
+types. So the cards ship without them.
+
+This is the largest visual difference between the reference and the built app,
+and it is not a styling choice. A star rating is a claim about what other people
+thought, and there is nobody to have thought it yet.
+
+What it needs, roughly in order of cost:
+
+1. A `product_reviews` table, or an aggregate column pair
+   (`rating_average numeric(2,1)`, `rating_count integer`) maintained by trigger.
+2. `ProductSummary.rating: { average: number; count: number } | null` — null
+   meaning "no ratings", never `0`, so a card can tell "unrated" from "rated
+   badly".
+3. `sort=rating` on `GET /api/products`, which the brief's sort sheet lists.
+
+Until then the sort sheet says why the option is missing rather than hiding it.
+
+### 8.2 Size and colour filters
+
+The reference's filter sheet has both. `GET /api/products` documents neither, and
+`docs/api.md` is the whole list. Sizes live on `product_variants`, so filtering a
+listing by size means a join the listing query does not currently do.
+
+Requested: `size` (csv) and `color` (csv) on `GET /api/products`, matching any
+variant. Plus a facet endpoint, or facet counts on the listing response, so the
+sheet can offer the sizes that exist in *these* results rather than a fixed list
+of six that mostly return nothing.
+
+### 8.3 Discount filter and sort
+
+`20%+ / 40%+ / 60%+ / 70%+` in the reference. `discountPercent` is computed per
+offer for display and is not stored on a product, so there is nothing to filter
+or sort on. Requested: `minDiscount` on the listing, and `sort=discount`.
+
+### 8.4 Price-drop and trending collections
+
+The brief's Discover has "Price Drops" and "Trending Now" as collections.
+
+- `ProductSummary.priceDrop` already exists on a card, so the data is there — but
+  nothing filters a listing to only products that have one. Requested:
+  `hasPriceDrop=true`.
+- Trending is click-outs by distinct shoppers in
+  `src/modules/merchandising`, and the web app already computes it. It has no
+  route. `GET /api/homepage` (§7) would answer both.
+
+Discover ships without either rather than relabelling `sort=newest` as
+"Trending", which would be exactly the flattering fiction PRD §69 forbids.
+
+### 8.5 Wishlist previous price
+
+The brief's wishlist tabs are All / Price drops / Available, and the price-drop
+tab is what makes a wishlist a tracking tool. `WishlistItem` carries the current
+price and the alert target, but no previous price — so "dropped ₹150" cannot be
+shown.
+
+The database keeps the history (the grid's `priceDrop` proves it). Requested on
+`GET /api/wishlist` (§2): `previousPrice: Money | null` and `changedAt`. The tab
+currently filters to items with an alert set, and says so.
+
+### 8.6 Community feed
+
+Every community read is a server component and every write a server action
+(`src/app/(shop)/community/actions.ts`), so React Native can reach none of it.
+
+Requested, smallest useful set:
+
+| Route | Returns |
+|---|---|
+| `GET /api/community/posts` | Paginated posts: author, media, caption, counts, and the products attached to the look |
+| `POST /api/community/posts/:id/like` | The new like state |
+| `POST /api/community/posts/:id/save` | The new save state |
+
+Service: `src/modules/community/service.ts`, which already holds the rules.
+
+Until then the Community tab is a signpost to the web feed, not an empty shell.
+
+### 8.7 Per-product stylist rationale
+
+The brief wants "Why we picked this" under each AI recommendation.
+`StylistReply` carries one `text` for the whole answer plus `products[]`, so the
+rationale is shown once above the set.
+
+Requested: `products: { product: ProductSummary; reason: string }[]`, with
+`reason` coming from the model's `recommend` tool call rather than parsed out of
+the prose — the same discipline `src/modules/ai/service.ts` already applies to
+ids, and for the same reason.
+
+### 8.8 Notifications feed
+
+`GET /api/account/summary` returns `unreadNotifications` — a count with nothing
+behind it. The bell in the header opens the web list. Requested:
+`GET /api/account/notifications` returning the feed `getMyNotifications()`
+already builds, and `POST /api/account/notifications/seen`.
+
+---
+
 ## Suggested order
 
 1. **§1 Bearer auth.** Nothing else is reachable without it, and it is one file.

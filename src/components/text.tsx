@@ -57,6 +57,7 @@ const COLOR_CLASS: Partial<Record<ColorToken, string>> = {
   info: 'text-info',
   surface: 'text-surface',
   'primary-foreground': 'text-primary-foreground',
+  'surface-2': 'text-surface-2',
   'dark-foreground': 'text-dark-foreground',
 };
 

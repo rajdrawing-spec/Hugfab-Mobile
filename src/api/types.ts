@@ -273,3 +273,29 @@ export interface AdminAttention {
   badges: Record<string, number>;
   asOf: string;
 }
+
+// ---------------------------------------------------------------------------
+// The AI stylist
+//
+// `POST /api/stylist` is live. Mirrored from HUGFAB-AI `src/modules/ai/types.ts`.
+// ---------------------------------------------------------------------------
+
+export interface StylistTurn {
+  role: 'user' | 'assistant';
+  /** 1–4000 characters; the route rejects an empty one. */
+  text: string;
+}
+
+export interface StylistReply {
+  /** Prose only — the service guarantees it never contains a price or a link. */
+  text: string;
+  /**
+   * What it recommended, as catalogue rows. Never parsed out of `text`: the
+   * model picks ids from what the search tool returned and anything it invents
+   * is dropped server-side, so a card here is always a product that exists at
+   * the price shown.
+   */
+  products: ProductSummary[];
+  /** The model named something that does not exist, and it was dropped. */
+  droppedInvented: boolean;
+}

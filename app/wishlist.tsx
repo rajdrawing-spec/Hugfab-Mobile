@@ -8,13 +8,23 @@
  *
  * `GET /api/wishlist` is `docs/API-GAPS.md` §2 and answers 404 today, which becomes
  * "not in the app yet" with a link to the website rather than "Not found."
+ *
+ * The brief's three tabs — All, Price drops, Available — are what makes a wishlist
+ * a price-tracking tool rather than a list of bookmarks. Two of them work on what
+ * `WishlistItem` already carries: `inStock` filters Available, and `target` (the
+ * price alert) is a real field. **Price drops does not.** The item has no previous
+ * price, so "dropped ₹150" cannot be computed or shown; that tab filters to items
+ * with an alert set and says so. §2 of the gaps doc now asks for `previousPrice`,
+ * which the database already keeps — the grid's `priceDrop` field proves it.
  */
 
+import { useMemo, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Text } from '@/components/text';
+import { Chip } from '@/components/chip';
 import { Price } from '@/components/price';
 import { Badge } from '@/components/badge';
 import { EmptyState, ErrorState, SignInPrompt, Skeleton } from '@/components/states';
@@ -29,11 +39,20 @@ export default function WishlistScreen(): React.JSX.Element {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  const [tab, setTab] = useState<'all' | 'alerts' | 'available'>('all');
+
   const query = useQuery({
     queryKey: queryKeys.wishlist(),
     queryFn: ({ signal }) => listWishlist(signal),
     enabled: status === 'signedIn',
   });
+
+  const items = useMemo(() => {
+    const all = query.data?.items ?? [];
+    if (tab === 'available') return all.filter((item) => item.inStock);
+    if (tab === 'alerts') return all.filter((item) => item.target !== null);
+    return all;
+  }, [query.data, tab]);
 
   const remove = useMutation({
     mutationFn: (productId: string) => removeFromWishlist(productId),
@@ -60,15 +79,13 @@ export default function WishlistScreen(): React.JSX.Element {
     return <ErrorState error={query.error} onRetry={() => void query.refetch()} />;
   }
 
-  const items = query.data.items;
-
-  if (items.length === 0) {
+  if (query.data.items.length === 0) {
     return (
       <EmptyState
         title="Nothing saved yet"
-        body="Tap the heart on a product to keep it here and watch its price."
-        actionLabel="Browse the catalogue"
-        onAction={() => router.push('/search')}
+        body="Save products you love and find them here — with their prices watched."
+        actionLabel="Discover fashion"
+        onAction={() => router.push('/discover')}
       />
     );
   }
@@ -77,6 +94,33 @@ export default function WishlistScreen(): React.JSX.Element {
     <FlatList
       className="flex-1 bg-background"
       data={items}
+      ListHeaderComponent={
+        <View className="flex-row flex-wrap pb-1">
+          <Chip label="All" selected={tab === 'all'} onPress={() => setTab('all')} />
+          <Chip
+            label="Price alerts"
+            selected={tab === 'alerts'}
+            onPress={() => setTab('alerts')}
+          />
+          <Chip
+            label="Available"
+            selected={tab === 'available'}
+            onPress={() => setTab('available')}
+          />
+        </View>
+      }
+      ListEmptyComponent={
+        <EmptyState
+          title="Nothing in this tab"
+          body={
+            tab === 'available'
+              ? 'None of your saved products is in stock right now.'
+              : 'You have not set a price alert on any saved product yet.'
+          }
+          actionLabel="Show all saved"
+          onAction={() => setTab('all')}
+        />
+      }
       keyExtractor={(item) => item.id}
       contentContainerClassName="p-4"
       renderItem={({ item }) => (

@@ -18,4 +18,5 @@ export const queryKeys = {
   order: (orderId: string) => ['order', orderId] as const,
   merchantAttention: () => ['console', 'merchant'] as const,
   adminAttention: () => ['console', 'admin'] as const,
+  discover: (collection: string) => ['discover', collection] as const,
 } as const;

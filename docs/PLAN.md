@@ -172,6 +172,66 @@ Two deviations worth naming:
 
 ---
 
+## The 2026 mobile brief
+
+A later brief re-scoped the app: a premium fashion-discovery product rather than
+a mobile view of the website, with a five-tab structure and a pink brand.
+
+### What changed
+
+**Navigation.** Home · Discover · AI · Community · Account, with AI raised.
+Search, the Bag and the Wishlist left the bar — they are actions and a list, not
+destinations — and live in `AppHeader` and Account instead.
+
+**The brand colour is pink, and it is not the reference image's pink.** That
+matters enough to record the numbers:
+
+| | White on fill | Verdict |
+|---|---|---|
+| `#E91E63` — the reference image | 4.35:1 | fails WCAG AA |
+| `#EC4899` — a common hot pink | 3.53:1 | fails |
+| `#D81B60` — **this app** | 4.95:1 | passes |
+| `#DC2626` — the web app's red | 4.83:1 | passes |
+
+`docs/design-system.md` records that the pink the web app's red replaced was
+3.41:1 and failed. Picking the reference image's pink would have walked straight
+back into that. `#D81B60` is visually the same pink and clears AA by a wider
+margin than the red it replaces, so the brief's direction cost nothing. Anyone
+tempted to nudge it brighter should re-run those numbers first.
+
+`error` stays red: with pink as the brand colour, a pink error is
+indistinguishable from a CTA, and "this failed" must never look like "press me".
+
+### What the brief asks for that this app does not do
+
+Not omissions — each is a claim the data cannot support, and all are specified in
+`docs/API-GAPS.md` §8.
+
+| Asked for | Why not |
+|---|---|
+| Star ratings on every card | There is no rating anywhere in the catalogue |
+| Size and colour filters | `GET /api/products` takes neither parameter |
+| Discount filter and sort | `discountPercent` is per offer, not stored on a product |
+| "Trending Now" and "Price Drops" collections | No sort or filter answers either; relabelling `newest` as "trending" is the fiction PRD §69 forbids |
+| "Price dropped ₹150" on the wishlist | `WishlistItem` has no previous price |
+| "Why we picked this" per AI recommendation | The stylist returns one rationale for the set |
+| A price range slider | A two-handle slider wants a native module Expo Go has not got. Price bands instead |
+| Community feed | Server actions only — no endpoint React Native can call |
+
+### Checkout, payment and order tracking
+
+Still Phase 2, and the brief agrees with itself here: §19 says not to build a
+fake HugFab checkout if the model is a redirect to the retailer. Today it is —
+the whole catalogue is affiliate offers with a `clickPath`. Add Razorpay's native
+SDK being unavailable in Expo Go, and the honest build is the one that exists:
+the Bag hands off to the web checkout.
+
+The screens in the reference (address, payment, confirmation, tracking) are drawn
+for a model HugFab does not yet run for affiliate products. They arrive with the
+dev build, alongside payments, and the UI is structured so both models fit.
+
+---
+
 ## Status, as built
 
 What has been verified, and what has not. The distinction matters: a container

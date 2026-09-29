@@ -16,27 +16,19 @@ import { FlatList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Text } from '@/components/text';
-import { Chip } from '@/components/chip';
 import { SearchBar } from '@/components/search-bar';
 import { AffiliateNote } from '@/components/affiliate-note';
+import { Touchable } from '@/components/pressable';
+import { FilterSheet, SortSheet, type DraftFilters } from '@/components/filter-sheet';
 import { ProductCard } from '@/components/product-card';
 import { EmptyState, ErrorState, ProductGridSkeleton } from '@/components/states';
-import {
-  listProducts,
-  searchProducts,
-  SORT_OPTIONS,
-  type ProductFilters,
-} from '@/api/products';
+import { listProducts, searchProducts, type ProductFilters } from '@/api/products';
 import type { Gender, Paginated, ProductSummary } from '@/api/types';
-import { elevation } from '@/theme';
+import { color, elevation } from '@/theme';
 
-const GENDERS: readonly { value: Gender; label: string }[] = [
-  { value: 'women', label: 'Women' },
-  { value: 'men', label: 'Men' },
-  { value: 'unisex', label: 'Unisex' },
-  { value: 'kids', label: 'Kids' },
-];
+const GENDERS: readonly Gender[] = ['women', 'men', 'unisex', 'kids'];
 
 const PER_PAGE = 24;
 
@@ -54,38 +46,49 @@ export default function SearchScreen(): React.JSX.Element {
 
   const [text, setText] = useState(params.q ?? '');
   const [debounced, setDebounced] = useState(params.q ?? '');
-  const [gender, setGender] = useState<Gender | null>(asGender(params.gender));
+  const [filters, setFilters] = useState<DraftFilters>({
+    gender: asGender(params.gender),
+    maxPrice: params.maxPrice ? Number(params.maxPrice) : null,
+    inStock: params.inStock === 'true',
+  });
   const [sort, setSort] = useState<ProductFilters['sort']>(
     asSort(params.sort) ?? 'relevance',
   );
-  const [inStockOnly, setInStockOnly] = useState(params.inStock === 'true');
+  const [sheet, setSheet] = useState<'filter' | 'sort' | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(text.trim()), 350);
     return () => clearTimeout(timer);
   }, [text]);
 
-  const maxPrice = params.maxPrice ? Number(params.maxPrice) : undefined;
-
-  const filters = useMemo<ProductFilters>(
+  const query_ = useMemo<ProductFilters>(
     () => ({
       q: debounced.length > 0 ? debounced : undefined,
-      gender: gender ?? undefined,
+      gender: filters.gender ?? undefined,
       sort,
-      inStock: inStockOnly ? true : undefined,
-      maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
+      inStock: filters.inStock ? true : undefined,
+      maxPrice:
+        filters.maxPrice !== null && Number.isFinite(filters.maxPrice)
+          ? filters.maxPrice
+          : undefined,
       perPage: PER_PAGE,
     }),
-    [debounced, gender, sort, inStockOnly, maxPrice],
+    [debounced, filters, sort],
   );
 
+  /** How many filters are on, for the button's badge. */
+  const activeCount =
+    (filters.gender ? 1 : 0) +
+    (filters.maxPrice !== null ? 1 : 0) +
+    (filters.inStock ? 1 : 0);
+
   const query = useInfiniteQuery({
-    queryKey: ['products', 'search', filters],
+    queryKey: ['products', 'search', query_],
     initialPageParam: 1,
     queryFn: ({ pageParam, signal }) => {
-      const page = { ...filters, page: pageParam };
-      return filters.q
-        ? searchProducts({ ...page, q: filters.q }, signal)
+      const page = { ...query_, page: pageParam };
+      return query_.q
+        ? searchProducts({ ...page, q: query_.q }, signal)
         : listProducts(page, signal);
     },
     getNextPageParam: (last: Paginated<ProductSummary>) =>
@@ -110,34 +113,13 @@ export default function SearchScreen(): React.JSX.Element {
         style={{ paddingTop: insets.top + 8, ...elevation('sm') }}
       >
         <SearchBar value={text} onChangeText={setText} autoFocus={false} />
-
-        <View className="mt-3 flex-row flex-wrap">
-          {GENDERS.map((option) => (
-            <Chip
-              key={option.value}
-              label={option.label}
-              selected={gender === option.value}
-              onPress={() => setGender(gender === option.value ? null : option.value)}
-            />
-          ))}
-          <Chip
-            label="In stock"
-            selected={inStockOnly}
-            onPress={() => setInStockOnly(!inStockOnly)}
-          />
-        </View>
-
-        <View className="flex-row flex-wrap">
-          {SORT_OPTIONS.map((option) => (
-            <Chip
-              key={option.value}
-              label={option.label}
-              selected={sort === option.value}
-              onPress={() => setSort(option.value)}
-            />
-          ))}
-        </View>
       </View>
+
+      <ListingControls
+        activeCount={activeCount}
+        onFilter={() => setSheet('filter')}
+        onSort={() => setSheet('sort')}
+      />
 
       {query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
@@ -147,14 +129,13 @@ export default function SearchScreen(): React.JSX.Element {
         <EmptyState
           title="Nothing matched"
           body={
-            filters.q
-              ? `No products for "${filters.q}" with these filters. Try fewer filters or a shorter search.`
+            query_.q
+              ? `No products for "${query_.q ?? ''}" with these filters. Try fewer filters or a shorter search.`
               : 'No products match these filters yet.'
           }
           actionLabel="Clear filters"
           onAction={() => {
-            setGender(null);
-            setInStockOnly(false);
+            setFilters({ gender: null, maxPrice: null, inStock: false });
             setSort('relevance');
           }}
         />
@@ -180,16 +161,92 @@ export default function SearchScreen(): React.JSX.Element {
           }
         />
       )}
+      <FilterSheet
+        visible={sheet === 'filter'}
+        value={filters}
+        onClose={() => setSheet(null)}
+        onApply={(next) => {
+          setFilters(next);
+          setSheet(null);
+        }}
+      />
+      <SortSheet
+        visible={sheet === 'sort'}
+        value={sort}
+        onClose={() => setSheet(null)}
+        onSelect={(next) => {
+          setSort(next);
+          setSheet(null);
+        }}
+      />
+    </View>
+  );
+}
+
+/**
+ * Filter and Sort, pinned above the grid. The brief asks for these to be sticky,
+ * and they are the two controls a shopper reaches for most on a listing — putting
+ * them in a scrolling header means scrolling back up to change your mind.
+ */
+function ListingControls({
+  activeCount,
+  onFilter,
+  onSort,
+}: {
+  activeCount: number;
+  onFilter: () => void;
+  onSort: () => void;
+}): React.JSX.Element {
+  return (
+    <View className="bg-surface flex-row border-b border-border">
+      <Touchable
+        accessibilityRole="button"
+        accessibilityLabel={
+          activeCount > 0 ? `Filter, ${String(activeCount)} applied` : 'Filter'
+        }
+        onPress={onFilter}
+        containerClassName="flex-1"
+        className="flex-row items-center justify-center py-3"
+      >
+        <Ionicons name="options-outline" size={17} color={color('text')} />
+        <Text step="small" weight="medium" className="ml-1.5">
+          Filter
+        </Text>
+        {activeCount > 0 ? (
+          <View className="bg-primary ml-1.5 h-5 min-w-5 items-center justify-center rounded-full px-1">
+            <Text step="caption" tone="primary-foreground" weight="semibold">
+              {String(activeCount)}
+            </Text>
+          </View>
+        ) : null}
+      </Touchable>
+
+      <View className="w-px bg-border" />
+
+      <Touchable
+        accessibilityRole="button"
+        accessibilityLabel="Sort"
+        onPress={onSort}
+        containerClassName="flex-1"
+        className="flex-row items-center justify-center py-3"
+      >
+        <Ionicons name="swap-vertical-outline" size={17} color={color('text')} />
+        <Text step="small" weight="medium" className="ml-1.5">
+          Sort
+        </Text>
+      </Touchable>
     </View>
   );
 }
 
 function asGender(value: string | undefined): Gender | null {
-  return GENDERS.some((option) => option.value === value) ? (value as Gender) : null;
+  return GENDERS.some((option) => option === value) ? (value as Gender) : null;
 }
 
+const SORT_VALUES = ['relevance', 'price_asc', 'price_desc', 'newest'] as const;
+
 function asSort(value: string | undefined): ProductFilters['sort'] | null {
-  return SORT_OPTIONS.some((option) => option.value === value)
+  return SORT_VALUES.some((option) => option === value)
     ? (value as ProductFilters['sort'])
     : null;
 }

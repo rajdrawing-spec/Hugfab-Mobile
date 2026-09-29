@@ -21,9 +21,24 @@
  *
  * Two notes on values that look wrong and are not:
  *
- * - `primary` (#DC2626) is a shade deeper than the logo's red (#F5100F). White
- *   text on pure red is 4.00:1 and fails WCAG AA; this is 4.83:1. Measured, not
- *   accidental — do not "fix" it.
+ * - `primary` is **#D81B60**, not the web app's #DC2626. The mobile brief asks
+ *   for the brand's pink, and `docs/design-system.md` warns that the pink the
+ *   red replaced was 3.41:1 and failed WCAG AA — so the shade was chosen by
+ *   measurement rather than by eye:
+ *
+ *       #E91E63  (the reference image's pink)  4.35:1  FAILS AA
+ *       #EC4899  (a common "hot pink")         3.53:1  FAILS AA
+ *       #D81B60  (this token)                  4.95:1  passes
+ *       #DC2626  (the web app's red)           4.83:1  passes
+ *
+ *   White on #D81B60 clears AA by a wider margin than the red it replaces, so
+ *   the brief's direction costs nothing in contrast. Anyone tempted to nudge it
+ *   towards the reference image should re-run those numbers first: the pink in
+ *   that image is exactly the one the web app already rejected.
+ *
+ * - `error` stays red (#DC2626). With pink as the brand colour, a pink error
+ *   would be indistinguishable from a CTA, and "this failed" must never look
+ *   like "press me".
  * - `h1` is 32px here against the web's 48. The web scale is built for a 1440px
  *   column; 48px on a 360dp phone is four words to a line. The rest of the scale
  *   is shifted to match, and `display` is kept for a hero that does not exist yet.
