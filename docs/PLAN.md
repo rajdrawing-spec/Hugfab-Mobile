@@ -143,6 +143,35 @@ phone is on another network.
 
 ---
 
+## What the guide specifies and this app now has
+
+`HUGFAB-AI/docs/ui-ux-guide.md` §4 lists the patterns that recur across three or
+more screens. The first build shipped tokens without them, which is why the UI
+read as basic — correct colours, none of the concept.
+
+| Guide §4 | State |
+|---|---|
+| Search bar: pill, magnifier left, camera right | Built. The camera is drawn and says visual search is Phase 2, rather than being left out and moving every other element when it arrives |
+| Category rail: circular thumbnails, labels beneath | Built. `categories` has no image column, so a circle draws a tinted initial — the same fallback the web app uses |
+| Product card: image, wishlist heart top-right, brand, name, price cluster, retailer | Built |
+| Retailer shown with logo and name, never a bare domain | Built — `RetailerBadge`, with a monogram when the feed supplies no artwork |
+| Price cluster: current h3 bold · original struck muted · discount green | Built. The discount is the server's figure, never derived from the two prices |
+| Bottom bar: four destinations around a raised action button | Built. Destinations are this app's, not the web's — Discover and Community are not in Phase 1 |
+| Affiliate disclosure on any surface with an outbound link (PRD §74) | Built — on Home, search, the product page and the offers list |
+| Comparison table: logo, name, price, original, discount, action | Built as the offers screen |
+| Deal Score, price history, Style DNA, Trust row | Not built — Phase 2, or needs feed data this app must not assert |
+
+Two deviations worth naming:
+
+- **The handwritten script** the concept uses for editorial asides (§7) is not
+  used. It needs a licensed face and a `--font-script` token, neither of which
+  exists, and the guide restricts it to marketing surfaces anyway.
+- **Poppins is bundled**, reversing the first build's decision to ship the system
+  face. It costs roughly 600KB in the APK and it is most of what separated this
+  app from looking like HugFab.
+
+---
+
 ## Status, as built
 
 What has been verified, and what has not. The distinction matters: a container

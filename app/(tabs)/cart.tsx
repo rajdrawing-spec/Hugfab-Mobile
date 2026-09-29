@@ -25,6 +25,7 @@ import { getCart, setCartItemQuantity } from '@/api/cart';
 import { formatMoney } from '@/lib/money';
 import { openWebPage } from '@/lib/links';
 import { queryKeys } from '@/query/keys';
+import { elevation } from '@/theme';
 import { useAuth } from '@/auth/session';
 import type { CartLine } from '@/api/types';
 
@@ -143,9 +144,8 @@ function CartRow({
 
   return (
     <View
-      className={`bg-surface mb-3 flex-row rounded-lg border border-border p-3 ${
-        busy ? 'opacity-50' : ''
-      }`}
+      style={elevation('sm')}
+      className={`bg-surface mb-3 flex-row rounded-lg p-3 ${busy ? 'opacity-50' : ''}`}
     >
       <Image
         source={line.imageUrl}

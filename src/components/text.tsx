@@ -8,6 +8,13 @@
  * a call site.
  *
  * `color` defaults to the body colour, so a heading on a dark panel says so once.
+ *
+ * Weight is a **font family**, not a `fontWeight`. Poppins ships one file per
+ * weight, and React Native cannot synthesise a bold from a regular file the way
+ * a browser will — asking for `fontWeight: 700` on `Poppins_400Regular` silently
+ * gives you regular on Android and a smeared fake bold on iOS. So each step
+ * names the family it wants, and `weight` overrides the family rather than a
+ * numeric weight.
  */
 
 import { Text as RNText, type TextProps } from 'react-native';
@@ -24,6 +31,18 @@ const STEP_CLASS: Record<Step, string> = {
   small: 'text-small',
   caption: 'text-caption',
   button: 'text-button',
+};
+
+/** The family each step is set in, before any `weight` override. */
+const STEP_FAMILY: Record<Step, string> = {
+  display: 'font-bold',
+  h1: 'font-bold',
+  h2: 'font-semibold',
+  h3: 'font-semibold',
+  body: 'font-sans',
+  small: 'font-sans',
+  caption: 'font-sans',
+  button: 'font-semibold',
 };
 
 const COLOR_CLASS: Partial<Record<ColorToken, string>> = {
@@ -49,7 +68,7 @@ export interface AppTextProps extends TextProps {
 }
 
 const WEIGHT_CLASS = {
-  normal: 'font-normal',
+  normal: 'font-sans',
   medium: 'font-medium',
   semibold: 'font-semibold',
   bold: 'font-bold',
@@ -66,8 +85,8 @@ export function Text({
     <RNText
       className={[
         STEP_CLASS[step],
+        weight ? WEIGHT_CLASS[weight] : STEP_FAMILY[step],
         COLOR_CLASS[tone] ?? 'text-text',
-        weight ? WEIGHT_CLASS[weight] : '',
         className ?? '',
       ]
         .filter(Boolean)

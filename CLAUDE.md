@@ -59,12 +59,36 @@ never `× 100`.
 
 ## Design
 
-`src/theme/tokens.ts` holds the palette and type scale from
-`docs/design-system.md`; `tailwind.config.js` maps them to NativeWind classes.
+`src/theme/tokens.json` holds the palette, type scale, radii and elevation from
+`docs/design-system.md`; `tailwind.config.js` and `src/theme/index.ts` both read
+it, so the classes and the style objects cannot drift.
 
 **No component hardcodes a hex, a font size or a radius.** `bg-surface`,
 `text-h3`, `rounded-lg`. If the token you want is missing, add it to
-`tokens.ts` first.
+`tokens.json` first.
+
+Screens and patterns come from **HUGFAB-AI `docs/ui-ux-guide.md`**, which is as
+binding as the token file and was under-read the first time: the search bar's
+camera, the category rail, the wishlist heart on a card, the retailer shown with
+its logo and name, and the bottom bar's raised action button are all specified
+there, and all were missing from the first build.
+
+Three rules that are not decoration:
+
+- **Weight is a font family, not a `fontWeight`.** Poppins ships one file per
+  weight and React Native cannot synthesise a bold, so `fontSize` tokens carry no
+  weight and `Text` picks the family. A numeric weight beside a Poppins family is
+  ignored on Android and faked on iOS.
+- **`elevation()` is a style object, not a class.** There is no `box-shadow`
+  here: iOS reads four `shadow*` props, Android reads one `elevation` integer,
+  and no class carries both. Use it sparingly — a screen where everything is
+  raised has said nothing.
+- **NativeWind does not style third-party components.** `className` on
+  `LinearGradient` and friends is silently dropped. Give the layout to a wrapper
+  `View` and let the third-party component fill it.
+
+The affiliate disclosure (`AffiliateNote`) belongs on **any** surface with an
+outbound buy link — PRD §74 and the guide's §6, not a footer convention.
 
 Every list has three states and all three are built at the same time: skeleton
 (never a spinner), empty (say what to do next), error (say what happened and

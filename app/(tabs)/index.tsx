@@ -16,6 +16,9 @@ import { RefreshControl, ScrollView, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { Text } from '@/components/text';
 import { ProductRail } from '@/components/product-rail';
+import { HomeHeader } from '@/components/home-header';
+import { CategoryRail } from '@/components/category-rail';
+import { AffiliateNote } from '@/components/affiliate-note';
 import { ErrorState } from '@/components/states';
 import { LOCAL_HOME_SECTIONS } from '@/home/sections';
 import { features, missingConfigMessage } from '@/lib/env';
@@ -39,6 +42,8 @@ export default function HomeScreen(): React.JSX.Element {
   return (
     <ScrollView
       className="flex-1 bg-background"
+      contentContainerClassName="pb-8"
+      showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -47,6 +52,9 @@ export default function HomeScreen(): React.JSX.Element {
         />
       }
     >
+      <HomeHeader />
+      <CategoryRail />
+
       {LOCAL_HOME_SECTIONS.map((section) =>
         section.kind === 'product_rail' ? (
           <ProductRail
@@ -59,8 +67,11 @@ export default function HomeScreen(): React.JSX.Element {
         ) : null,
       )}
 
-      <View className="border-t border-border px-4 py-6">
-        <Text step="caption" tone="muted">
+      {/* PRD §74 and the guide's §6: the disclosure belongs on any surface with an
+          outbound buy link, not only in a footer. Every card here leads to one. */}
+      <View className="mt-2 border-t border-border px-4 py-6">
+        <AffiliateNote />
+        <Text step="caption" tone="muted" className="mt-3">
           These rows are built from the catalogue, not from the merchandising set on the
           HugFab website. Deals and the editorial homepage arrive in a later release.
         </Text>

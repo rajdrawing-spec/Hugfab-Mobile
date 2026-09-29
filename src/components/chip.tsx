@@ -4,8 +4,9 @@
  * and a screen reader has no way to see a red background.
  */
 
-import { Pressable } from 'react-native';
 import { Text } from './text';
+import { Touchable } from './pressable';
+import { color, elevation } from '@/theme';
 
 export function Chip({
   label,
@@ -17,18 +18,23 @@ export function Chip({
   onPress: () => void;
 }): React.JSX.Element {
   return (
-    <Pressable
+    <Touchable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       accessibilityLabel={label}
       onPress={onPress}
-      className={`mr-2 mb-2 rounded-sm border px-3 py-1.5 ${
+      style={selected ? { ...elevation('sm'), shadowColor: color('primary') } : undefined}
+      className={`mb-2 mr-2 rounded-full border px-3.5 py-2 ${
         selected ? 'bg-primary border-primary' : 'bg-surface border-border'
       }`}
     >
-      <Text step="small" tone={selected ? 'primary-foreground' : 'text'}>
+      <Text
+        step="small"
+        weight={selected ? 'semibold' : 'normal'}
+        tone={selected ? 'primary-foreground' : 'text'}
+      >
         {label}
       </Text>
-    </Pressable>
+    </Touchable>
   );
 }

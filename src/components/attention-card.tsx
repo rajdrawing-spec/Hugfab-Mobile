@@ -12,10 +12,12 @@
  * you there.
  */
 
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Text } from './text';
 import { Badge } from './badge';
+import { Touchable } from './pressable';
 import { openWebPage } from '@/lib/links';
+import { elevation } from '@/theme';
 import type { AttentionAlert, AttentionItem, Severity } from '@/api/types';
 
 const SEVERITY_TONE: Record<Severity, 'primary' | 'warning' | 'info' | 'success'> = {
@@ -44,11 +46,13 @@ function Card({
   href: string;
 }): React.JSX.Element {
   return (
-    <Pressable
+    <Touchable
       accessibilityRole="link"
       accessibilityLabel={`${title}. ${cta} on the website.`}
+      press="card"
       onPress={() => void openWebPage(href)}
-      className="bg-surface mb-3 rounded-lg border border-border p-4"
+      style={elevation('sm')}
+      className="bg-surface mb-3 rounded-lg p-4"
     >
       {badge}
       <Text step="small" className="mt-2">
@@ -57,7 +61,7 @@ function Card({
       <Text step="small" tone="primary" weight="semibold" className="mt-2">
         {cta}
       </Text>
-    </Pressable>
+    </Touchable>
   );
 }
 

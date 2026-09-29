@@ -20,6 +20,7 @@ import { Badge } from '@/components/badge';
 import { EmptyState, ErrorState, SignInPrompt, Skeleton } from '@/components/states';
 import { listWishlist, removeFromWishlist } from '@/api/account';
 import { queryKeys } from '@/query/keys';
+import { elevation } from '@/theme';
 import { useAuth } from '@/auth/session';
 import type { WishlistItem } from '@/api/types';
 
@@ -105,9 +106,8 @@ function WishlistRow({
 }): React.JSX.Element {
   return (
     <View
-      className={`bg-surface mb-3 flex-row rounded-lg border border-border p-3 ${
-        removing ? 'opacity-50' : ''
-      }`}
+      style={elevation('sm')}
+      className={`bg-surface mb-3 flex-row rounded-lg p-3 ${removing ? 'opacity-50' : ''}`}
     >
       <Pressable accessibilityRole="link" onPress={onOpen}>
         <Image

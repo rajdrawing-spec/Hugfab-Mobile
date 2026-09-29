@@ -8,7 +8,7 @@
  * `docs/design-system.md`, "The one rule". White, black and transparent are kept
  * because an overlay and a border need them.
  */
-const { colors, fontSize, borderRadius } = require('./src/theme/tokens.json');
+const { colors, fontSize, borderRadius, fontFamily } = require('./src/theme/tokens.json');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -38,6 +38,7 @@ module.exports = {
     },
     fontSize,
     borderRadius,
+    fontFamily,
     extend: {},
   },
   plugins: [],

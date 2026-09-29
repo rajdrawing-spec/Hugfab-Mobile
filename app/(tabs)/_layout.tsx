@@ -1,82 +1,44 @@
 /**
- * The bottom bar: five destinations.
+ * The tab navigator. Its bar is `src/components/tab-bar.tsx` — four destinations
+ * around a raised Search button, per `docs/ui-ux-guide.md` §3.
  *
- * The web app's mobile bar is four destinations around a raised Search button
- * (`MOBILE_ACTION` in its `nav-links.ts`), because a website's header already
- * carries a search field and the bar is compensating for losing it. A native app
- * has the tab bar as its only chrome, so Search is a destination here and the Bag
- * — which the web keeps in its header — becomes one too.
+ * Route order here is the order they sit in the bar, and `search` is placed in
+ * the middle so the custom bar can lift it out: the bar filters it from the
+ * destinations and draws it as the action.
  *
- * The Bag is labelled "Bag" and routed at `cart`: the word is the web app's, the
+ * The Bag is labelled "Bag" and routed at `cart` — the word is the web app's, the
  * route matches the API.
  */
 
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { TabBar } from '@/components/tab-bar';
 import { color } from '@/theme';
 
 export default function TabsLayout(): React.JSX.Element {
   return (
     <Tabs
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: color('primary'),
-        tabBarInactiveTintColor: color('muted'),
-        tabBarStyle: {
-          backgroundColor: color('surface'),
-          borderTopColor: color('border'),
-        },
-        tabBarLabelStyle: { fontSize: 11 },
         headerStyle: { backgroundColor: color('surface') },
         headerTintColor: color('text'),
         headerShadowVisible: false,
+        headerTitleStyle: { fontFamily: 'Poppins_600SemiBold', fontSize: 17 },
         sceneStyle: { backgroundColor: color('background') },
       }}
     >
+      <Tabs.Screen name="index" options={{ headerShown: false, tabBarLabel: 'Home' }} />
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'HugFab',
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color: tint, size }) => (
-            <Ionicons name="home-outline" color={tint} size={size} />
-          ),
-        }}
+        name="wishlist"
+        options={{ title: 'Wishlist', tabBarLabel: 'Wishlist' }}
       />
       <Tabs.Screen
         name="search"
-        options={{
-          title: 'Search',
-          tabBarIcon: ({ color: tint, size }) => (
-            <Ionicons name="search-outline" color={tint} size={size} />
-          ),
-        }}
+        options={{ headerShown: false, tabBarLabel: 'Search' }}
       />
-      <Tabs.Screen
-        name="wishlist"
-        options={{
-          title: 'Wishlist',
-          tabBarIcon: ({ color: tint, size }) => (
-            <Ionicons name="heart-outline" color={tint} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          title: 'Bag',
-          tabBarIcon: ({ color: tint, size }) => (
-            <Ionicons name="bag-outline" color={tint} size={size} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="cart" options={{ title: 'Bag', tabBarLabel: 'Bag' }} />
       <Tabs.Screen
         name="account"
-        options={{
-          title: 'Account',
-          tabBarIcon: ({ color: tint, size }) => (
-            <Ionicons name="person-outline" color={tint} size={size} />
-          ),
-        }}
+        options={{ title: 'Account', tabBarLabel: 'Account' }}
       />
     </Tabs>
   );

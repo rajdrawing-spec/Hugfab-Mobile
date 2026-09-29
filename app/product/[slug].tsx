@@ -20,6 +20,9 @@ import { Text } from '@/components/text';
 import { Button } from '@/components/button';
 import { Badge, AvailabilityBadge } from '@/components/badge';
 import { NoPrice, Price } from '@/components/price';
+import { RetailerBadge } from '@/components/retailer-badge';
+import { WishlistHeart } from '@/components/wishlist-heart';
+import { AffiliateNote } from '@/components/affiliate-note';
 import { ErrorState, Skeleton } from '@/components/states';
 import { getProduct } from '@/api/products';
 import { addCartItem } from '@/api/cart';
@@ -77,7 +80,12 @@ export default function ProductScreen(): React.JSX.Element {
     <>
       <Stack.Screen options={{ title: product.brand?.name ?? 'Product' }} />
       <ScrollView className="flex-1 bg-background">
-        <Gallery imageUrls={product.imageUrls} size={width} title={product.title} />
+        <View>
+          <Gallery imageUrls={product.imageUrls} size={width} title={product.title} />
+          <View className="absolute right-4 top-4">
+            <WishlistHeart productId={product.id} title={product.title} />
+          </View>
+        </View>
 
         <View className="bg-surface p-4">
           {product.brand ? (
@@ -104,13 +112,13 @@ export default function ProductScreen(): React.JSX.Element {
                   discountPercent={offer.discountPercent}
                   size="lg"
                 />
-                <View className="mt-2 flex-row items-center gap-2">
+                <View className="mt-3 flex-row items-center">
                   <Badge label="Best price" tone="primary" variant="solid" />
-                  <Text step="small" tone="muted">
-                    {`at ${offer.retailer.name}`}
-                  </Text>
+                  <View className="ml-3 flex-1">
+                    <RetailerBadge retailer={offer.retailer} size="md" />
+                  </View>
                 </View>
-                <View className="mt-2">
+                <View className="mt-3">
                   <AvailabilityBadge availability={offer.availability} />
                 </View>
               </>
@@ -120,13 +128,17 @@ export default function ProductScreen(): React.JSX.Element {
           </View>
 
           {offer ? (
-            <Button
-              label={`Buy at ${offer.retailer.name}`}
-              pill
-              fullWidth
-              className="mt-5"
-              onPress={() => void openClickOut(offer.clickPath)}
-            />
+            <>
+              <Button
+                label={`Buy at ${offer.retailer.name}`}
+                pill
+                fullWidth
+                className="mt-5"
+                onPress={() => void openClickOut(offer.clickPath)}
+              />
+              {/* PRD §74: the disclosure belongs beside the outbound link. */}
+              <AffiliateNote className="mt-3" />
+            </>
           ) : null}
 
           {offerCount > 1 ? (
@@ -203,7 +215,7 @@ export default function ProductScreen(): React.JSX.Element {
           </View>
         ) : null}
 
-        <View className="bg-surface mt-3 mb-8 p-4">
+        <View className="bg-surface mt-3 mb-10 p-4">
           <Text step="h3">Find similar</Text>
           <Text step="small" tone="muted" className="mt-2">
             Similar products are matched on the website. They arrive in the app with the

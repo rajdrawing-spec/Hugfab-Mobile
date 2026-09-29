@@ -12,11 +12,14 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, TextInput, View } from 'react-native';
+import { FlatList, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
 import { Text } from '@/components/text';
 import { Chip } from '@/components/chip';
+import { SearchBar } from '@/components/search-bar';
+import { AffiliateNote } from '@/components/affiliate-note';
 import { ProductCard } from '@/components/product-card';
 import { EmptyState, ErrorState, ProductGridSkeleton } from '@/components/states';
 import {
@@ -26,7 +29,7 @@ import {
   type ProductFilters,
 } from '@/api/products';
 import type { Gender, Paginated, ProductSummary } from '@/api/types';
-import { color } from '@/theme';
+import { elevation } from '@/theme';
 
 const GENDERS: readonly { value: Gender; label: string }[] = [
   { value: 'women', label: 'Women' },
@@ -38,6 +41,7 @@ const GENDERS: readonly { value: Gender; label: string }[] = [
 const PER_PAGE = 24;
 
 export default function SearchScreen(): React.JSX.Element {
+  const insets = useSafeAreaInsets();
   // A "See all" from a home rail arrives as params, so the screen opens on that
   // filter rather than making the person rebuild it.
   const params = useLocalSearchParams<{
@@ -101,17 +105,11 @@ export default function SearchScreen(): React.JSX.Element {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="bg-surface border-b border-border px-4 pb-3 pt-2">
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder="Search for a product, brand or colour"
-          placeholderTextColor={color('muted')}
-          returnKeyType="search"
-          autoCorrect={false}
-          accessibilityLabel="Search the catalogue"
-          className="bg-surface-2 rounded-full px-4 py-2.5 text-body text-text"
-        />
+      <View
+        className="bg-surface px-4 pb-3"
+        style={{ paddingTop: insets.top + 8, ...elevation('sm') }}
+      >
+        <SearchBar value={text} onChangeText={setText} autoFocus={false} />
 
         <View className="mt-3 flex-row flex-wrap">
           {GENDERS.map((option) => (
@@ -171,11 +169,14 @@ export default function SearchScreen(): React.JSX.Element {
           onEndReachedThreshold={0.6}
           ListHeaderComponent={
             <Text step="caption" tone="muted" className="px-2 pb-2">
-              {`${total} ${total === 1 ? 'product' : 'products'}`}
+              {`${String(total)} ${total === 1 ? 'product' : 'products'}`}
             </Text>
           }
           ListFooterComponent={
-            query.isFetchingNextPage ? <ProductGridSkeleton count={2} /> : null
+            <>
+              {query.isFetchingNextPage ? <ProductGridSkeleton count={2} /> : null}
+              {!query.hasNextPage ? <AffiliateNote className="px-2 pb-4 pt-6" /> : null}
+            </>
           }
         />
       )}

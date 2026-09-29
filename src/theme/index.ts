@@ -28,15 +28,23 @@
  *   column; 48px on a 360dp phone is four words to a line. The rest of the scale
  *   is shifted to match, and `display` is kept for a hero that does not exist yet.
  *
+ * `fontSize` carries a size and a line height only — no `fontWeight`. Weight is
+ * carried by the family (see `src/components/text.tsx`), and a numeric weight
+ * beside a Poppins family is at best ignored and at worst a synthesised fake
+ * bold. Leaving it out is what keeps the two from fighting.
+ *
  * `borderRadius` carries `none` and `full` alongside the guide's 8/12/16/24.
  * Overriding Tailwind's scale replaces it rather than extending it, so leaving
  * them out silently deleted `rounded-full` — and the guide asks for exactly that
  * on pill CTAs and the search field. A missing radius class is invisible in
  * review: it compiles, it lints, and the corner is just wrong.
  *
- * Poppins is the web app's face and is not bundled here. A font file is close to
- * a megabyte before first paint, Phase 1 has not measured whether that is worth
- * it on a slow connection, and the system face is honest in the meantime.
+ * Poppins is the web app's face, and it IS bundled — reversing an earlier call
+ * to ship the system face. The weights add roughly 600KB to the APK, which is a
+ * real cost on a slow connection; it buys the app looking like HugFab rather
+ * than like whatever Android happens to ship, and that turned out to be most of
+ * the difference between "basic" and "premium". The font is bundled rather than
+ * fetched, so it costs nothing at runtime and cannot fail to load on a train.
  */
 
 import tokens from './tokens.json';
@@ -44,6 +52,38 @@ import tokens from './tokens.json';
 export const colors = tokens.colors;
 export const fontSize = tokens.fontSize;
 export const borderRadius = tokens.borderRadius;
+export const fontFamily = tokens.fontFamily;
+
+/**
+ * Depth, as React Native wants it.
+ *
+ * Not a Tailwind `shadow-*` scale, because there is no `box-shadow` here: iOS
+ * reads four `shadow*` props and Android reads a single `elevation` integer, and
+ * a class name cannot carry both. So a raised surface takes `elevation('md')` on
+ * its `style` — the one place in this app where a style object beats a class.
+ *
+ * Used sparingly and on purpose. A 1px border says "here is an edge"; a shadow
+ * says "this sits above the page". A screen where everything is raised has said
+ * nothing at all.
+ */
+export type ElevationToken = keyof typeof tokens.elevation;
+
+export function elevation(token: ElevationToken) {
+  const e = tokens.elevation[token];
+  return {
+    shadowColor: e.shadowColor,
+    shadowOpacity: e.shadowOpacity,
+    shadowRadius: e.shadowRadius,
+    shadowOffset: { width: e.shadowOffsetWidth, height: e.shadowOffsetHeight },
+    elevation: e.elevation,
+  } as const;
+}
+
+/**
+ * The brand ribbon, for `expo-linear-gradient`. Two stops, left to right, from
+ * the web app's `promo-from` / `promo-to`.
+ */
+export const promoGradient = [colors['promo-from'], colors['promo-to']] as const;
 
 export type ColorToken = keyof typeof colors;
 

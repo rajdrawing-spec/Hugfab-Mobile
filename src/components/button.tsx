@@ -9,11 +9,16 @@
  * Every button carries `accessibilityRole` and, when it is icon-only, requires a
  * label. The web guide treats that as a condition of merge, and a phone has no
  * hover text to fall back on.
+ *
+ * A filled button is raised in its own colour rather than in grey — a red button
+ * casting a grey shadow looks like a sticker. `outline` and `text` stay flat:
+ * they are the quieter options and a shadow would argue with that.
  */
 
-import { ActivityIndicator, Pressable, View, type PressableProps } from 'react-native';
+import { ActivityIndicator, View, type PressableProps } from 'react-native';
 import { Text } from './text';
-import { color } from '@/theme';
+import { Touchable } from './pressable';
+import { color, elevation } from '@/theme';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'text' | 'dark' | 'danger';
 
@@ -33,6 +38,16 @@ const LABEL_TONE: Record<Variant, 'primary-foreground' | 'text' | 'primary'> = {
   text: 'primary',
   dark: 'primary-foreground',
   danger: 'primary-foreground',
+};
+
+/** A filled button's shadow takes its own hue, so the lift reads as light. */
+const SHADOW_TOKEN: Record<Variant, Parameters<typeof color>[0]> = {
+  primary: 'primary',
+  secondary: 'secondary',
+  outline: 'dark',
+  text: 'dark',
+  dark: 'dark',
+  danger: 'error',
 };
 
 const SPINNER_TOKEN: Record<Variant, Parameters<typeof color>[0]> = {
@@ -67,12 +82,19 @@ export function Button({
 }: ButtonProps): React.JSX.Element {
   const isDisabled = disabled === true || loading;
 
+  const raised = variant === 'primary' || variant === 'secondary' || variant === 'dark';
+
   return (
-    <Pressable
+    <Touchable
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       accessibilityLabel={label}
       disabled={isDisabled}
+      style={
+        raised && !isDisabled
+          ? { ...elevation('sm'), shadowColor: color(SHADOW_TOKEN[variant]) }
+          : undefined
+      }
       className={[
         'flex-row items-center justify-center',
         size === 'sm' ? 'px-4 py-2' : 'px-5 py-3.5',
@@ -95,6 +117,6 @@ export function Button({
           {label}
         </Text>
       )}
-    </Pressable>
+    </Touchable>
   );
 }

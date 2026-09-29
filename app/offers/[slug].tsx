@@ -9,16 +9,20 @@
  * to this app, so there is nothing else here that could be opened.
  */
 
-import { FlatList, Pressable, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Text } from '@/components/text';
 import { Badge, AvailabilityBadge } from '@/components/badge';
 import { Price } from '@/components/price';
+import { RetailerBadge } from '@/components/retailer-badge';
+import { AffiliateNote } from '@/components/affiliate-note';
+import { Touchable } from '@/components/pressable';
 import { EmptyState, ErrorState, Skeleton } from '@/components/states';
 import { getProduct } from '@/api/products';
 import { openClickOut } from '@/lib/links';
 import { queryKeys } from '@/query/keys';
+import { elevation } from '@/theme';
 import type { ProductOffer } from '@/api/types';
 
 export default function OffersScreen(): React.JSX.Element {
@@ -66,6 +70,7 @@ export default function OffersScreen(): React.JSX.Element {
           In stock first, then cheapest.
         </Text>
       }
+      ListFooterComponent={<AffiliateNote className="pt-4" />}
       renderItem={({ item, index }) => <OfferRow offer={item} isBest={index === 0} />}
     />
   );
@@ -79,20 +84,24 @@ function OfferRow({
   isBest: boolean;
 }): React.JSX.Element {
   return (
-    <Pressable
+    <Touchable
       accessibilityRole="link"
       accessibilityLabel={`Buy at ${offer.retailer.name}`}
+      press="card"
       onPress={() => void openClickOut(offer.clickPath)}
-      className="bg-surface mb-3 rounded-lg border border-border p-4"
+      style={elevation(isBest ? 'md' : 'sm')}
+      className={`bg-surface mb-3 rounded-lg p-4 ${
+        isBest ? 'border border-primary' : ''
+      }`}
     >
       <View className="flex-row items-center justify-between">
-        <Text step="body" weight="semibold">
-          {offer.retailer.name}
-        </Text>
+        <View className="flex-1 pr-3">
+          <RetailerBadge retailer={offer.retailer} size="md" />
+        </View>
         {isBest ? <Badge label="Best price" tone="primary" variant="solid" /> : null}
       </View>
 
-      <View className="mt-2">
+      <View className="mt-3">
         <Price
           price={offer.price}
           originalPrice={offer.originalPrice}
@@ -100,12 +109,12 @@ function OfferRow({
         />
       </View>
 
-      <View className="mt-2 flex-row items-center justify-between">
+      <View className="mt-3 flex-row items-center justify-between">
         <AvailabilityBadge availability={offer.availability} />
         <Text step="small" tone="primary" weight="semibold">
-          Buy
+          Buy →
         </Text>
       </View>
-    </Pressable>
+    </Touchable>
   );
 }

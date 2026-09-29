@@ -10,8 +10,10 @@
  * nothing when pressed is worse than no control.
  */
 
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Text } from './text';
+import { Touchable } from './pressable';
+import { elevation } from '@/theme';
 
 export function StatTile({
   value,
@@ -35,25 +37,31 @@ export function StatTile({
     </>
   );
 
-  const className = 'bg-surface flex-1 rounded-lg border border-border p-3';
+  const className = 'bg-surface rounded-lg p-4';
 
   if (!onPress) {
     return (
-      <View className={className} accessibilityLabel={`${String(value)} ${label}`}>
+      <View
+        className={`${className} flex-1`}
+        style={elevation('sm')}
+        accessibilityLabel={`${String(value)} ${label}`}
+      >
         {body}
       </View>
     );
   }
 
   return (
-    <Pressable
+    <Touchable
       accessibilityRole="button"
       accessibilityLabel={`${String(value)} ${label}`}
       onPress={onPress}
+      style={elevation('sm')}
+      containerClassName="flex-1"
       className={className}
     >
       {body}
-    </Pressable>
+    </Touchable>
   );
 }
 

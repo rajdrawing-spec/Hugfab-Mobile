@@ -14,6 +14,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from './text';
 import { Badge } from './badge';
 import { formatMoney } from '@/lib/money';
+import { elevation } from '@/theme';
 import type { FulfilmentStatus, OrderSummary } from '@/api/types';
 
 const STATUS: Record<
@@ -46,7 +47,8 @@ export function OrderRow({
       accessibilityRole="button"
       accessibilityLabel={`Order ${order.orderNumber}, ${status.label}`}
       onPress={onPress}
-      className="mb-3 rounded-lg border border-border p-3"
+      style={elevation('sm')}
+      className="bg-surface mb-3 rounded-lg p-3"
     >
       <View className="flex-row items-center justify-between">
         <Text step="small" weight="semibold">

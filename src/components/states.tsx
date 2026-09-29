@@ -6,10 +6,16 @@
  * is not decoration: a skeleton in the shape of the content tells someone what is
  * coming and how much, and it makes a slow connection feel like loading instead of
  * like nothing happening.
+ *
+ * The skeleton sweeps rather than pulses. A block fading in and out reads as an
+ * element that cannot make up its mind; a highlight travelling across it reads as
+ * work in progress. Same cost, and the second one is what people recognise as
+ * loading.
  */
 
 import { useEffect, useState } from 'react';
 import { Animated, Easing, View, type StyleProp, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from './text';
 import { Button } from './button';
 import { describeError, FeatureUnavailableError } from '@/api/errors';
@@ -31,36 +37,61 @@ export function Skeleton({
   // Lazy `useState` rather than `useRef(new Animated.Value(...))`: the ref form
   // constructs a throwaway Value on every render, and reading `.current` during
   // render is what the React lint rules now forbid.
-  const [opacity] = useState(() => new Animated.Value(0.4));
+  // Lazy `useState` rather than `useRef(new Animated.Value(...))`: the ref form
+  // constructs a throwaway Value on every render, and reading `.current` during
+  // render is what the React lint rules now forbid.
+  const [progress] = useState(() => new Animated.Value(0));
+  const [width, setWidth] = useState(0);
 
   useEffect(() => {
     const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.9,
-          duration: 700,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.4,
-          duration: 700,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ]),
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: 1400,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }),
     );
     loop.start();
     return () => loop.stop();
-  }, [opacity]);
+  }, [progress]);
 
   return (
-    <Animated.View
-      style={[style, { opacity }]}
+    <View
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      className={['bg-surface-2 rounded-md', className ?? ''].join(' ')}
-    />
+      className={['bg-surface-2 overflow-hidden rounded-md', className ?? ''].join(' ')}
+      style={style}
+    >
+      {width > 0 ? (
+        <Animated.View
+          style={{
+            width: width * 0.6,
+            height: '100%',
+            transform: [
+              {
+                translateX: progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-width * 0.6, width],
+                }),
+              },
+            ],
+          }}
+        >
+          <LinearGradient
+            colors={[
+              'rgba(255,255,255,0)',
+              'rgba(255,255,255,0.75)',
+              'rgba(255,255,255,0)',
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+      ) : null}
+    </View>
   );
 }
 
