@@ -8,7 +8,7 @@
 
 import '@/../global.css';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -24,6 +24,13 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '@/auth/session';
 import { createQueryClient } from '@/query/client';
+import { Splash, MIN_VISIBLE_MS } from '@/components/splash';
+import { Onboarding } from '@/onboarding/onboarding';
+import {
+  markOnboardingSeen,
+  readOnboardingState,
+  type OnboardingState,
+} from '@/onboarding/storage';
 import { color } from '@/theme';
 
 /**
@@ -50,13 +57,64 @@ export default function RootLayout(): React.JSX.Element {
     Poppins_700Bold,
   });
 
-  useEffect(() => {
-    // `fontError` hides the splash too: a missing font file is a reason to look
-    // wrong, never a reason to show a splash screen for ever.
-    if (fontsLoaded || fontError) void SplashScreen.hideAsync().catch(() => {});
-  }, [fontsLoaded, fontError]);
+  /**
+   * The launch gate.
+   *
+   * Onboarding is not a route here, it is a state. Gating with `router.replace`
+   * means the tab navigator mounts first and the intro slides in over it, which
+   * both flickers and puts Home in the back stack — press back on slide one and
+   * you are in an app you have not been introduced to. Rendering it instead of
+   * the navigator has neither problem. `app/onboarding.tsx` still exists as a
+   * route so it can be opened directly and tested.
+   */
+  const [onboarding, setOnboarding] = useState<OnboardingState>('loading');
+  const [beatDone, setBeatDone] = useState(MIN_VISIBLE_MS === 0);
 
-  if (!fontsLoaded && !fontError) return <></>;
+  useEffect(() => {
+    void readOnboardingState().then(setOnboarding);
+  }, []);
+
+  useEffect(() => {
+    if (MIN_VISIBLE_MS === 0) return;
+    const timer = setTimeout(() => setBeatDone(true), MIN_VISIBLE_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const finishOnboarding = useCallback(() => {
+    // Written and forgotten: the screen changes on the state, not on the write,
+    // so a storage failure costs a repeated intro rather than a stuck button.
+    void markOnboardingSeen();
+    setOnboarding('done');
+  }, []);
+
+  const fontsReady = fontsLoaded || fontError !== null;
+
+  useEffect(() => {
+    // Hand off from the native splash to ours as soon as we can draw the
+    // wordmark in the right face. `fontError` counts: a missing font file is a
+    // reason to look wrong, never a reason to show a splash screen for ever.
+    if (fontsReady) void SplashScreen.hideAsync().catch(() => {});
+  }, [fontsReady]);
+
+  if (!fontsReady) return <></>;
+
+  if (onboarding === 'loading' || !beatDone) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <Splash />
+      </SafeAreaProvider>
+    );
+  }
+
+  if (onboarding === 'needed') {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <Onboarding onDone={finishOnboarding} />
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -75,6 +133,7 @@ export default function RootLayout(): React.JSX.Element {
             >
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="dashboard" options={{ title: 'Console' }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
               <Stack.Screen name="search" options={{ headerShown: false }} />
               <Stack.Screen name="wishlist" options={{ title: 'My Wishlist' }} />
               <Stack.Screen name="cart" options={{ title: 'My Bag' }} />

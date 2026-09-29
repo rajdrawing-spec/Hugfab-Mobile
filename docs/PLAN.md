@@ -218,6 +218,43 @@ Not omissions — each is a claim the data cannot support, and all are specified
 | A price range slider | A two-handle slider wants a native module Expo Go has not got. Price bands instead |
 | Community feed | Server actions only — no endpoint React Native can call |
 
+### Splash and onboarding
+
+The launch sequence is native splash → animated splash → intro (first run only)
+→ Home.
+
+**Onboarding is a state, not a route.** The gate in `app/_layout.tsx` renders the
+intro *instead of* the tab navigator. Redirecting with `router.replace` would
+mount the tabs first and slide the intro over them, which flickers and leaves
+Home in the back stack — press back on slide one and you are inside an app you
+have not been introduced to. `app/onboarding.tsx` still exists as a route so the
+intro can be replayed from Account and opened directly.
+
+The flag is `hugfab.onboarding.seen.v1` in AsyncStorage, per install rather than
+per account: the brief is explicit that nobody is asked to sign in before looking
+around, and a server-side flag would need a session to read. Every storage call
+is wrapped, and a failure degrades to showing the intro again rather than failing
+the launch.
+
+**The splash holds for a minimum beat** (`MIN_VISIBLE_MS`, 900ms) even when the
+work behind it finishes sooner. Reading one storage key takes milliseconds, and a
+splash that flashes for 20ms is worse than none — so this is a deliberate brand
+moment, not a fake loader. Set it to `0` to remove it; nothing else depends on it.
+
+**There is no HugFab artwork in this repo.** `assets/` holds the Expo template's
+generic icons and nothing else — not the logo lockup, not photography. So:
+
+- The splash and every intro slide take an optional `art` prop and draw the brand
+  gradient or a tinted icon panel when none is given. Supplying real photography
+  is a one-line change per slide.
+- The wordmark is set in Poppins rather than drawn. `docs/design-system.md` says
+  the lockup is `public/hugfab-logo.png` used exactly as supplied and never
+  reconstructed in code, so type is the honest stand-in until that file is here.
+- `app.json`'s native splash is a flat brand field with no image, because the
+  alternative was showing the Expo template's mark for half a second on every
+  launch. The app **icon is still the template's** and needs replacing before any
+  release.
+
 ### Checkout, payment and order tracking
 
 Still Phase 2, and the brief agrees with itself here: §19 says not to build a
