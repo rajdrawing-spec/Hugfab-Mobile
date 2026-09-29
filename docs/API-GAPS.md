@@ -2,9 +2,30 @@
 
 What the mobile app needs from `rajdrawing-spec/HUGFAB-AI` and does not have.
 
-**Nothing in this document has been changed in that repo.** It is a request, written
-in that repo's own conventions so it can be implemented without re-deciding
-anything.
+## Status
+
+**§1, §2, §4, §5 and §6 are built** and pushed to `feature/mobile-api` in
+HUGFAB-AI. Bearer authentication, the wishlist, orders and the address book are
+routes now; `GET /api/account/summary` carries `orderCount` and `wishlistCount`.
+That branch passes the repo's full CI suite (lint, format, typecheck, 2,149
+tests, build) and documents every route in its own `docs/api.md`.
+
+The sections below are kept as written, because they are the argument for each
+route and the place to look when one behaves unexpectedly. Two of them turned out
+to be wrong against the real code, and both are corrected in place:
+
+- **Tracking is per shipment, not per line** (§5). One order can ship in several
+  parcels from several merchants, so the courier and the AWB belong to a
+  shipment and `itemIds` says which lines were in it.
+- **The orders service redirects when signed out** (§5). `getMyOrders()` guards
+  itself with `requireUser()`, a page guard, so a route must establish its own
+  401 with `requireApiUser()` first.
+
+**Still outstanding: §3 (cart), §7 (homepage) and all of §8.** §3 needs a product
+decision before any code — see below. §8 is mostly schema work, and ratings in
+particular is a product question rather than an endpoint.
+
+---
 
 Why these gaps exist: the web app performs its writes with **Next.js server
 actions** — 55 files of them. A server action is a POST to an opaque, per-build
@@ -28,7 +49,7 @@ Conventions every item assumes — from `docs/api.md`:
 
 ---
 
-## 1. Bearer-token authentication — blocks everything else
+## 1. Bearer-token authentication — BUILT
 
 **The whole gap in one sentence:** `createServerSupabase()` builds its client from
 `cookies()` (`src/lib/supabase/server.ts`), so a request carrying
@@ -82,7 +103,7 @@ knowing before the first store release.
 
 ---
 
-## 2. Wishlist
+## 2. Wishlist — BUILT
 
 Service: `src/modules/wishlist/service.ts` — `myWishlist()`, `addToWishlist()`,
 `removeFromWishlist()`. All three exist and are used by `(shop)/wishlist/actions.ts`.
@@ -120,7 +141,7 @@ know.
 
 ---
 
-## 3. Cart
+## 3. Cart — NOT BUILT: needs a product decision first
 
 Service: `src/modules/cart/service.ts` — `getCart()`, `addItem(variantId, qty)`,
 `setQuantity(itemId, qty)`. Used by `(shop)/cart/actions.ts`.
@@ -184,7 +205,7 @@ native and the app is Expo Go, so the Bag's checkout button opens
 
 ---
 
-## 4. Addresses
+## 4. Addresses — BUILT
 
 Service: `src/modules/addresses/service.ts` — `getAddressBook()`, `saveAddress()`,
 `removeAddress()`, `makeDefault()`. `SavedAddress` is already a clean domain type
@@ -205,7 +226,7 @@ form already expects.
 
 ---
 
-## 5. Orders
+## 5. Orders — BUILT
 
 Service: `src/modules/orders/service.ts` — `getMyOrders()`, `getMyOrder(orderId)`.
 
@@ -241,7 +262,7 @@ the web order page for them.
 
 ---
 
-## 6. `GET /api/account/summary` — exists, needs two things
+## 6. `GET /api/account/summary` — BUILT
 
 The route is live and already returns `data: null` for a visitor rather than a
 `401`, which is the right call and one the app relies on.
@@ -398,15 +419,24 @@ already builds, and `POST /api/account/notifications/seen`.
 
 ---
 
-## Suggested order
+## What is left, in order
 
-1. **§1 Bearer auth.** Nothing else is reachable without it, and it is one file.
-2. **§6 summary fields** — smallest visible win; proves the bearer path end to end.
-3. **§2 Wishlist** — three routes, no money arithmetic, no cart-identity question.
-4. **§5 Orders** — read-only.
-5. **§4 Addresses** — mechanical.
-6. **§3 Cart** — last, because the cart-identity decision is real work.
-7. **§7 Homepage** — whenever; the app degrades honestly without it.
+1. **§3 Cart.** Blocked on one question, not on code: a web cart is identified by
+   a cookie, so a bearer-authenticated cart must be keyed on the user id. Either
+   an anonymous mobile cart is not supported — sign in before adding to the Bag,
+   which the app is already built to say — or `carts` grows a `user_id` path.
+   That is a product decision.
+2. **§7 Homepage.** Whenever. The app degrades honestly without it and says so on
+   the screen.
+3. **§8.4 Price-drop and trending collections.** Listing parameters over data the
+   database already holds; the cheapest of the §8 items.
+4. **§8.5 Wishlist previous price**, which makes the wishlist a price tracker
+   rather than a bookmark list.
+5. **§8.2 / §8.3 Size, colour and discount filters.** Real query work, and size
+   needs a join the listing does not do today.
+6. **§8.6 Community feed**, **§8.8 notifications**, **§8.7 stylist rationale**.
+7. **§8.1 Ratings.** Last, and a product question before an engineering one: a
+   reviews table means deciding who may write one, when, and who moderates it.
 
 The app ships against whatever exists. Screens behind a missing endpoint say
 "not available in the app yet" and link to the web page — they do not show

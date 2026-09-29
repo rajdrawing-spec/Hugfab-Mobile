@@ -127,9 +127,12 @@ export interface AccountSummary {
   firstName: string | null;
   avatarUrl: string | null;
   unreadNotifications: number;
-  /** Both pending — see docs/API-GAPS.md §6. Absent until that ships. */
-  orderCount?: number;
-  wishlistCount?: number;
+  orderCount: number;
+  wishlistCount: number;
+  /** A HugFab Plus member right now. */
+  plus: boolean;
+  /** Other consoles this account may open. Navigation only. */
+  workspaces: { href: string; label: string }[];
 }
 
 /** docs/API-GAPS.md §2. */
@@ -185,10 +188,12 @@ export interface OrderSummary {
   total: Money;
   refunded: Money;
   lineCount: number;
+  /** The first line's image, which is what a card draws. */
+  imageUrl: string | null;
 }
 
 export interface OrderLine {
-  orderItemId: string;
+  id: string;
   productId: string | null;
   title: string;
   variantLabel: string | null;
@@ -197,16 +202,38 @@ export interface OrderLine {
   unitPrice: Money;
   lineTotal: Money;
   fulfilmentStatus: FulfilmentStatus;
-  trackingReference: string | null;
-  carrier: string | null;
   /** The most recent return on this line, if any. */
   returnStatus: ReturnStatus | null;
   /** Server-computed. A client that guesses offers a button the database refuses. */
   canReturn: boolean;
 }
 
+/**
+ * A parcel.
+ *
+ * **Tracking is per shipment, not per line** — an earlier version of this file
+ * had `trackingReference` and `carrier` on `OrderLine`, and that was simply
+ * wrong: one order can ship in several parcels from several merchants, so a
+ * courier and an AWB belong to a shipment and `itemIds` says which lines were in
+ * it. Flattened onto lines it would have been wrong the first time an order
+ * shipped in two boxes.
+ */
+export interface OrderShipment {
+  id: string;
+  courierName: string;
+  awb: string;
+  trackingUrl: string | null;
+  status: string;
+  estimatedDeliveryDate: string | null;
+  shippedAt: string;
+  deliveredAt: string | null;
+  /** Which `OrderLine.id`s travelled in this parcel. */
+  itemIds: string[];
+}
+
 export interface OrderDetail extends OrderSummary {
   lines: OrderLine[];
+  shipments: OrderShipment[];
 }
 
 // ---------------------------------------------------------------------------

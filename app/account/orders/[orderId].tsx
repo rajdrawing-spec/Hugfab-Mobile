@@ -21,9 +21,9 @@ import { ErrorState, Skeleton } from '@/components/states';
 import { formatDate } from '@/components/order-row';
 import { getOrder } from '@/api/account';
 import { formatMoney, isZero } from '@/lib/money';
-import { openWebPage } from '@/lib/links';
+import { openExternal, openWebPage } from '@/lib/links';
 import { queryKeys } from '@/query/keys';
-import type { OrderLine } from '@/api/types';
+import type { OrderLine, OrderShipment } from '@/api/types';
 
 export default function OrderScreen(): React.JSX.Element {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
@@ -77,11 +77,26 @@ export default function OrderScreen(): React.JSX.Element {
         ) : null}
       </View>
 
+      {order.shipments.length > 0 ? (
+        <View className="bg-surface mt-3 p-4">
+          <Text step="h3">Parcels</Text>
+          <Text step="caption" tone="muted" className="mt-1">
+            An order can ship in more than one parcel, so tracking belongs to the parcel
+            rather than to a single item.
+          </Text>
+          <View className="mt-3">
+            {order.shipments.map((shipment) => (
+              <ShipmentRow key={shipment.id} shipment={shipment} />
+            ))}
+          </View>
+        </View>
+      ) : null}
+
       <View className="bg-surface mt-3 p-4">
         <Text step="h3">Items</Text>
         <View className="mt-3">
           {order.lines.map((line) => (
-            <OrderLineRow key={line.orderItemId} line={line} />
+            <OrderLineRow key={line.id} line={line} />
           ))}
         </View>
       </View>
@@ -96,6 +111,49 @@ export default function OrderScreen(): React.JSX.Element {
         />
       </View>
     </ScrollView>
+  );
+}
+
+/** One parcel: who is carrying it, its reference, and where it has got to. */
+function ShipmentRow({ shipment }: { shipment: OrderShipment }): React.JSX.Element {
+  return (
+    <View className="mb-3 rounded-lg border border-border p-3">
+      <View className="flex-row items-center justify-between">
+        <Text step="small" weight="semibold">
+          {shipment.courierName}
+        </Text>
+        <Badge label={shipment.status} tone="info" />
+      </View>
+
+      <Text step="caption" tone="muted" className="mt-1">
+        {shipment.awb}
+      </Text>
+
+      <Text step="caption" tone="muted" className="mt-1">
+        {shipment.deliveredAt
+          ? `Delivered ${formatDate(shipment.deliveredAt)}`
+          : shipment.estimatedDeliveryDate
+            ? `Expected ${formatDate(shipment.estimatedDeliveryDate)}`
+            : `Shipped ${formatDate(shipment.shippedAt)}`}
+      </Text>
+
+      <Text step="caption" tone="muted" className="mt-1">
+        {`${String(shipment.itemIds.length)} ${
+          shipment.itemIds.length === 1 ? 'item' : 'items'
+        } in this parcel`}
+      </Text>
+
+      {shipment.trackingUrl ? (
+        <Button
+          label="Track this parcel"
+          variant="outline"
+          size="sm"
+          pill
+          className="mt-3 self-start"
+          onPress={() => void openExternal(shipment.trackingUrl ?? '')}
+        />
+      ) : null}
+    </View>
   );
 }
 
@@ -122,14 +180,6 @@ function OrderLineRow({ line }: { line: OrderLine }): React.JSX.Element {
         <Text step="caption" tone="muted" className="mt-0.5">
           {`Quantity ${line.quantity} · ${formatMoney(line.lineTotal)}`}
         </Text>
-
-        {line.trackingReference ? (
-          <Text step="caption" tone="muted" className="mt-1">
-            {line.carrier
-              ? `${line.carrier} · ${line.trackingReference}`
-              : line.trackingReference}
-          </Text>
-        ) : null}
 
         {line.returnStatus ? (
           <View className="mt-1.5">

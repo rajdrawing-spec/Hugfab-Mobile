@@ -45,3 +45,30 @@ export async function openWebPage(path: string): Promise<void> {
     controlsColor: color('primary'),
   });
 }
+
+/**
+ * Somebody else's URL — a courier's tracking page, say.
+ *
+ * Distinct from `openWebPage`, which takes a **path** and prefixes the HugFab
+ * base. Handing this an absolute URL through that function would produce
+ * `https://hugfab.com/https://courier.example/track/...` and a dead link.
+ *
+ * Only http(s) is opened. A `javascript:` or `intent:` URL arriving in a field
+ * that is supposed to hold a courier's address is either a mistake upstream or
+ * an attempt at something, and neither is worth handing to a browser.
+ */
+export async function openExternal(url: string): Promise<void> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return;
+  }
+
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return;
+
+  await WebBrowser.openBrowserAsync(parsed.toString(), {
+    toolbarColor: color('surface'),
+    controlsColor: color('primary'),
+  });
+}
