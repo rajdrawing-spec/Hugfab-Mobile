@@ -77,6 +77,19 @@ already carry**. Razorpay's native SDK, remote push and AR are therefore out —
 they are Phase 2, behind `eas build`, and listed in `docs/PLAN.md`. Do not
 half-build them; do not add a native module to work around this.
 
+## The console
+
+`app/dashboard.tsx` is the one screen that is not a shopper screen. It reports
+what is waiting on a seller or an admin and links out; it never administers
+anything. Both its endpoints already exist, so it is also the only screen with no
+outstanding entry in `docs/API-GAPS.md`.
+
+One rule specific to it: **`NOT_FOUND` from a console endpoint means "not your
+console", not "not built yet".** Both guards answer 404 for a person without a
+shop or without the admin role, on purpose — so `src/api/dashboard.ts` resolves
+that to `null` rather than routing it through `orUnavailable`, which would tell a
+shopper their dashboard was coming soon.
+
 ## Conventions
 
 - TypeScript `strict`. No `any` in application code.

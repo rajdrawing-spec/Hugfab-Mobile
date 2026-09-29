@@ -3,9 +3,11 @@
 Android first, Expo Go for development, `eas build` when Phase 1 outgrows it.
 
 The web app has six surfaces (shop, account, merchant, admin, marketing, ads).
-**Only the shopper surface comes to mobile.** A merchant approving a settlement
-or an admin resolving a return is doing desk work on a 1440px screen; shrinking
-those screens would cost months and serve nobody.
+**The shopper surface comes to mobile, plus a read-only console.** A merchant
+approving a settlement or an admin resolving a return is doing desk work on a
+1440px screen; shrinking those screens would cost months and serve nobody. What
+did come across is the one thing a phone is better at — seeing that something
+needs you. See "The console" below.
 
 ---
 
@@ -21,6 +23,7 @@ Nine screens. Everything a shopper does before money moves.
 | `(tabs)/cart` | Bag: lines, quantities, server totals | ⚠ needs `GET /api/cart` |
 | `(tabs)/account` | Profile, orders, addresses, sign out | `GET /api/account/summary`, ⚠ rest |
 | `product/[slug]` | Gallery, best offer, offer count, Find Similar | `GET /api/products/:slug` |
+| `dashboard` | Console: what is waiting on a seller or an admin | `GET /api/merchant/attention`, `GET /api/admin/attention` |
 | `offers/[slug]` | Every offer → click-out | `GET /api/products/:slug`, `GET /api/affiliate/click` |
 | `auth/login` | Email + password | `supabase.auth.signInWithPassword` |
 | `auth/signup` | Email + password | `supabase.auth.signUp` |
@@ -31,6 +34,33 @@ invented rows.
 
 The cart tab is labelled **Bag**, which is the web app's word for it
 (`src/components/layout/nav-links.ts`). The route stays `cart` to match the API.
+
+### The console — a scope decision, reversed on purpose
+
+This plan originally said no merchant or admin surface would come to mobile at
+all. That was asked for and added, and the reasoning is worth keeping rather than
+quietly deleting, because it still holds for most of what it covered.
+
+**What has not changed:** approving a settlement, resolving a return, editing a
+product, building a campaign. Those are desk work on a wide screen, and shrinking
+them would cost months and serve nobody. None of them is in the app.
+
+**What changed:** there is one question a phone is the right device for — *is
+anything waiting on me?* — and answering it needed no new backend at all.
+`GET /api/merchant/attention` and `GET /api/admin/attention` are both live REST
+routes today, which makes the console the only screen in Phase 1 with no entry in
+`docs/API-GAPS.md` beyond the bearer token every authenticated call needs.
+
+So `app/dashboard.tsx` shows counts and what they mean, and every item on it opens
+the web console. It reports; it does not administer. If a future change has it
+approving or editing, that is the original decision being reversed for real, and
+it should be argued for on its own terms rather than inherited from this line.
+
+Which console a person sees is the server's decision. Both endpoints answer
+`NOT_FOUND` for someone who is not a seller or not an admin — deliberately, so an
+endpoint for shops does not confirm to someone without one that shops exist — so
+the app asks both and renders whatever answers. The entry point on the Account tab
+appears only when one does.
 
 ### Deliberately not in Phase 1
 

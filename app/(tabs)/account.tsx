@@ -11,12 +11,13 @@
 
 import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { Text } from '@/components/text';
 import { Button } from '@/components/button';
 import { ErrorState, SignInPrompt, Skeleton } from '@/components/states';
 import { OrderRow } from '@/components/order-row';
 import { getAccountSummary, listOrders } from '@/api/account';
+import { getAdminAttention, getMerchantAttention } from '@/api/dashboard';
 import { describeError } from '@/api/errors';
 import { openWebPage } from '@/lib/links';
 import { queryKeys } from '@/query/keys';
@@ -37,6 +38,37 @@ export default function AccountScreen(): React.JSX.Element {
     queryFn: ({ signal }) => listOrders(signal),
     enabled: status === 'signedIn',
   });
+
+  /**
+   * Whether this account has a console, asked by asking for one. Both endpoints
+   * answer NOT_FOUND for a shopper — deliberately, so they do not confirm to
+   * someone without a shop that shops exist — which `src/api/dashboard.ts` turns
+   * into null. So a null here is "no console", not a failure, and the entry
+   * point simply does not appear.
+   *
+   * There is no cheaper way to know. A capability endpoint would be one, and it
+   * does not exist; guessing from the account summary would be inventing a
+   * permission model on the client, which is the thing CLAUDE.md forbids.
+   */
+  const [merchantConsole, adminConsole] = useQueries({
+    queries: [
+      {
+        queryKey: queryKeys.merchantAttention(),
+        queryFn: ({ signal }: { signal: AbortSignal }) => getMerchantAttention(signal),
+        enabled: status === 'signedIn',
+      },
+      {
+        queryKey: queryKeys.adminAttention(),
+        queryFn: ({ signal }: { signal: AbortSignal }) => getAdminAttention(signal),
+        enabled: status === 'signedIn',
+      },
+    ],
+  });
+
+  const sellerWaiting = merchantConsole.data?.alerts.length ?? 0;
+  const adminWaiting = adminConsole.data?.needsAction ?? 0;
+  const waiting = sellerWaiting + adminWaiting;
+  const hasConsole = Boolean(merchantConsole.data ?? adminConsole.data);
 
   if (!available) {
     return (
@@ -96,6 +128,24 @@ export default function AccountScreen(): React.JSX.Element {
           </View>
         ) : null}
       </View>
+
+      {hasConsole ? (
+        <View className="bg-surface mt-3 p-4">
+          <Text step="h3">Console</Text>
+          <Text step="small" tone="muted" className="mt-1">
+            {waiting === 0
+              ? 'Nothing is waiting on you.'
+              : `${String(waiting)} ${waiting === 1 ? 'thing needs' : 'things need'} you.`}
+          </Text>
+          <Button
+            label="Open the console"
+            variant="outline"
+            pill
+            className="mt-3 self-start"
+            onPress={() => router.push('/dashboard')}
+          />
+        </View>
+      ) : null}
 
       <View className="bg-surface mt-3 p-4">
         <Text step="h3">Recent orders</Text>

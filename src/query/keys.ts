@@ -16,4 +16,6 @@ export const queryKeys = {
   cart: () => ['cart'] as const,
   orders: () => ['orders'] as const,
   order: (orderId: string) => ['order', orderId] as const,
+  merchantAttention: () => ['console', 'merchant'] as const,
+  adminAttention: () => ['console', 'admin'] as const,
 } as const;

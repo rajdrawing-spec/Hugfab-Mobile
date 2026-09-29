@@ -208,3 +208,68 @@ export interface OrderLine {
 export interface OrderDetail extends OrderSummary {
   lines: OrderLine[];
 }
+
+// ---------------------------------------------------------------------------
+// The consoles
+//
+// Mirrored from HUGFAB-AI `src/modules/merchants/dashboard.service.ts` and
+// `src/modules/admin/dashboard.types.ts`. Both endpoints exist and are live, so
+// unlike the cart and the wishlist these need no new backend work — only the
+// bearer-token change in `docs/API-GAPS.md` §1.
+//
+// Both `href` fields are paths on the HugFab website, not routes in this app.
+// The app shows what needs doing; acting on it opens the console in a browser.
+// ---------------------------------------------------------------------------
+
+/** One thing waiting on a seller. `tone` is the web app's word, not a colour. */
+export interface AttentionAlert {
+  key: string;
+  /** 'action': an order or a return waiting on them. 'warning': stock. */
+  tone: 'action' | 'warning';
+  count: number;
+  title: string;
+  href: string;
+}
+
+/**
+ * `GET /api/merchant/attention`.
+ *
+ * Counts are already limited to what this person's role may see — a seller
+ * without `orders.read` gets zeros rather than a forbidden error, so a zero here
+ * means "none, or not yours to see" and the screen must not read it as "none".
+ */
+export interface MerchantAttention {
+  newOrders: number;
+  toPack: number;
+  toShip: number;
+  openReturns: number;
+  lowStock: number;
+  outOfStock: number;
+  untracked: number;
+  listings: number;
+  latestOrder: { id: string; number: string } | null;
+  alerts: AttentionAlert[];
+}
+
+export type Severity = 'critical' | 'action' | 'info' | 'done';
+
+/** One queue waiting on an admin. `title` is a whole sentence already. */
+export interface AttentionItem {
+  id: string;
+  severity: Severity;
+  count: number;
+  title: string;
+  href: string;
+  cta: string;
+  /** The sidebar entry whose badge this adds to, on the web. */
+  area: string;
+}
+
+/** `GET /api/admin/attention`. */
+export interface AdminAttention {
+  items: AttentionItem[];
+  /** Critical and action-required items: what the console's bell counts. */
+  needsAction: number;
+  badges: Record<string, number>;
+  asOf: string;
+}
