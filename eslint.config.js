@@ -50,4 +50,17 @@ module.exports = defineConfig([
       'no-restricted-imports': 'off',
     },
   },
+  {
+    /*
+     * Tests assert on the output the rules above police. A test proving
+     * `formatMoney` renders ₹499 has to contain a ₹, and one stubbing
+     * `color()` has to name a colour. The rules exist to stop a *component*
+     * hardcoding either; a test is where the expected value is stated, so
+     * silencing them here keeps the rule strict everywhere it means something.
+     */
+    files: ['**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      'no-restricted-syntax': 'off',
+    },
+  },
 ]);
