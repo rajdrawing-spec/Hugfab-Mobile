@@ -68,7 +68,7 @@ export function TabBar({
           if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
         }}
         containerClassName="flex-1"
-        className="items-center px-1 py-2"
+        className="items-center py-2"
       >
         <Ionicons
           name={focused ? icon.on : icon.off}
@@ -95,7 +95,7 @@ export function TabBar({
       {left.map(renderTab)}
 
       {action ? (
-        <View className="w-20 items-center">
+        <View className="w-16 items-center">
           {/* Lifted above the bar's own top edge, which is what makes it read as
               an action rather than a fifth tab. */}
           <Touchable
