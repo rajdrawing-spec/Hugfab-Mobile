@@ -73,10 +73,12 @@ for *every* authenticated call the app makes.
 |---|---|
 | `hugfab.com` reachable from this container | **No** — the network policy answers 403 to CONNECT |
 | `.env.local` | absent (correct; git-ignored) |
-| `eas.json` | **absent** |
-| Android `versionCode` | **absent** from `app.json` |
+| `eas.json` | present (added 2026-09-30) |
+| Android `versionCode` | managed remotely by EAS (`appVersionSource: remote`) |
 | App icon | still the Expo template's |
-| Tests in the mobile repo | **zero** |
+| Tests in the mobile repo | 66, added 2026-09-30 |
+| `npx expo-doctor` | 19/21 pass; the 2 failures are this container's network, not the project |
+| `npx expo export --platform android` | bundles, 5.3 MB Hermes bytecode |
 
 ---
 
@@ -108,12 +110,20 @@ for *every* authenticated call the app makes.
 
 1. **`containerClassName` was a silent no-op.** Fixed in `c423152`, PR open,
    not yet merged. Tab bar and listing controls are mislaid until it lands.
-2. **No tests at all.** `package.json` has no test script and no test runner.
-   Every quality gate to date has been typecheck, lint and format only — none of
-   which would catch a wrong URL, a mis-mapped error code or a money bug.
-3. **No `versionCode`.** An Android release build needs one; a store upload is
-   rejected without a monotonically increasing value.
+2. ~~**No tests at all.**~~ Fixed: 66 unit tests over money, the error mapping,
+   the API client and the link handling. `npm test`. They do not test the API —
+   see §3 — and must never be cited as if they did.
+3. ~~**No `versionCode`.**~~ Fixed by `eas.json` with `appVersionSource: remote`
+   and `autoIncrement` on the production profile, so EAS owns the number and two
+   builds cannot collide on it.
 4. **The app icon is the Expo template's**, as is the adaptive-icon foreground.
+   This is a hard blocker for a store submission and needs artwork, not code.
+5. **The native splash is a background colour only.** `app.json` carries the
+   legacy top-level `splash` key with no image, and `expo-splash-screen` is a
+   dependency but not a config plugin. The app draws its own branded splash
+   after launch, so this is cosmetic rather than broken — but it should be
+   confirmed on a real build, since the legacy key's handling has moved between
+   SDK versions.
 
 ## 5. Needs backend work
 
@@ -157,8 +167,12 @@ is named in `docs/API-GAPS.md` §3.
 - `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the anon key
   only. `SUPABASE_SERVICE_ROLE_KEY` must never be present; anything in an APK is
   readable.
-- `eas.json` with development / preview / production profiles.
-- Android `versionCode`, and a signing keystore held by EAS.
+- ~~`eas.json` with development / preview / production profiles.~~ Added.
+  `EXPO_PUBLIC_API_BASE_URL` is set per profile; the two Supabase values are
+  deliberately **not** committed there. The anon key is public by construction
+  — it is inlined into the bundle — but holding it as an EAS environment
+  variable lets it rotate without a commit. Set it with `eas env:create`.
+- An Android signing keystore held by EAS (`eas credentials`).
 - App icon, adaptive icon, splash artwork, feature graphic, screenshots.
 - Privacy policy and data-safety declarations for the Play listing.
 - Widen the container's network policy to reach `hugfab.com`, or accept that no
