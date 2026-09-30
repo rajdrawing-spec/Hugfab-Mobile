@@ -4,11 +4,19 @@ What the mobile app needs from `rajdrawing-spec/HUGFAB-AI` and does not have.
 
 ## Status
 
-**§1, §2, §4, §5 and §6 are built** and pushed to `feature/mobile-api` in
-HUGFAB-AI. Bearer authentication, the wishlist, orders and the address book are
-routes now; `GET /api/account/summary` carries `orderCount` and `wishlistCount`.
-That branch passes the repo's full CI suite (lint, format, typecheck, 2,149
-tests, build) and documents every route in its own `docs/api.md`.
+**§1, §2, §4, §5 and §6 are written but NOT MERGED.** They live on
+`feature/mobile-api` in HUGFAB-AI as pull request #173, which is green on CI,
+mergeable, and has had no review since it opened. Bearer authentication, the
+wishlist, orders and the address book are routes there; `GET /api/account/summary`
+carries `orderCount` and `wishlistCount`. That branch passes the repo's full CI
+suite (lint, format, typecheck, 2,149 tests, build) and documents every route in
+its own `docs/api.md`.
+
+**Until #173 merges, the app has no authenticated surface at all.** Not just the
+four new endpoints: the web app authenticates with cookies, and a phone has no
+cookie jar, so `POST /api/stylist`, `GET /api/account/summary` and both console
+endpoints fail too. Only the public catalogue works — products, search, product
+detail and the affiliate click-out. See `docs/PRODUCTION-READINESS.md`.
 
 The sections below are kept as written, because they are the argument for each
 route and the place to look when one behaves unexpectedly. Two of them turned out
@@ -21,9 +29,10 @@ to be wrong against the real code, and both are corrected in place:
   itself with `requireUser()`, a page guard, so a route must establish its own
   401 with `requireApiUser()` first.
 
-**Still outstanding: §3 (cart), §7 (homepage) and all of §8.** §3 needs a product
-decision before any code — see below. §8 is mostly schema work, and ratings in
-particular is a product question rather than an endpoint.
+**Still outstanding: §3 (cart), §7 (homepage) and all of §8.** §3 is now
+documented against the real web implementation and needs a decision between three
+named options before any code — see below. §8 is mostly schema work, and ratings
+in particular is a product question rather than an endpoint.
 
 ---
 
@@ -143,22 +152,77 @@ know.
 
 ## 3. Cart — NOT BUILT: needs a product decision first
 
-Service: `src/modules/cart/service.ts` — `getCart()`, `addItem(variantId, qty)`,
-`setQuantity(itemId, qty)`. Used by `(shop)/cart/actions.ts`.
+**Verified against `main`** (`src/modules/cart/service.ts`, `repository.ts`) on
+2026-09-30, not inferred. The web cart's architecture is incompatible with a
+mobile client in three separate ways, and no amount of mobile code closes that.
 
-**One caveat the implementer must resolve, and the app cannot:** a web cart is
-identified by a cookie (`ensureCartId()`), and `docs/api.md` says as much —
-"the cart's identity is a cookie, history belongs to an account". A mobile cart has
-no cookie jar. So a bearer-authenticated cart must be keyed on the **user id**,
-which means either an anonymous mobile cart is not supported (sign-in required
-before adding to Bag — acceptable for Phase 1, and the app is built to show that),
-or `carts` grows a `user_id` path. **This is a product decision, not an
-implementation detail.** The app currently requires sign-in for the Bag.
+### How the web cart actually works
 
-### `GET /api/cart`
+| Question | Answer, from the code |
+|---|---|
+| 1. Can anonymous users have a cart? | **Yes.** It is the deliberate design: "a shopper must be able to fill a cart before deciding whether to have an account". |
+| 2. Is the cart authenticated? | **No.** Identity is the cart id itself. |
+| 3. Persisted server-side? | Yes, in `carts` / `cart_items`. |
+| 4. Tied to a user? | Only after sign-in. `carts.user_id` is nullable. |
+| 5. Guest cart / session id? | `hugfab_cart`, an **httpOnly cookie**, 30-day max-age, `sameSite: lax`. Never accepted from a request body — the comment says taking it from a form field "would let anyone read anyone's cart by guessing". |
+| 6. Guest → authenticated merge? | `claimCart(cartId, userId)` sets `user_id` where it `is null`. The guest cart becomes the user's; nothing is merged line by line. |
+| 7. Unavailable products? | Server-side. The line stays, `available: false`, `unitPrice` and `lineTotal` null, excluded from the totals, counted in `unavailable`. |
+| 8. Quantity limits? | Server-side, against stock and holds the client cannot see. `CartOutcome` carries the refusal sentence. |
+| 9. Where is the total calculated? | In the database, from `prices`. Never from anything a client sent. |
+| 10. How does checkout receive it? | `placeOrder()` reads the cookie, then `startPayment()` → **`createRazorpayOrder`**. Checkout is HugFab's own, through Razorpay. |
 
-`requireApiUser()`. `private, no-store`. Return `Cart` as
-`src/modules/cart/types.ts` defines it, with minor-unit pairs composed into `Money`:
+**Point 10 corrects an assumption the app currently embodies.** The catalogue is
+affiliate offers with a `clickPath`, but HugFab also has its own marketplace
+checkout that takes payment. The Bag is not merely a hand-off to a retailer.
+
+### Why the app cannot simply call it
+
+1. **No cookie jar.** The cart id lives in an httpOnly cookie the phone cannot
+   hold or send.
+2. **No RLS policy to satisfy.** `carts` has *none* — there is no `auth.uid()`
+   for a policy to match against, because a guest cart has no user. Every read
+   and write runs through `createAdminSupabase()`, the service role, server-side.
+   A bearer-authenticated Supabase client from the app would be refused by
+   deny-all, and the service-role key must never ship in an APK.
+3. **The id cannot be passed.** The one obvious mobile fix — send the cart id in
+   a header or body — is exactly what the web code refuses to do, for a stated
+   security reason that applies identically on mobile.
+
+### The decision to make
+
+Three options. The app is already built to display whichever is chosen.
+
+**A. Signed-in carts only.** `GET/POST/PATCH /api/cart*` key on
+`requireApiUser()`; the route resolves `user_id` → cart server-side and never
+touches a cookie. Smallest change, no schema work, no new security surface.
+Cost: a mobile shopper must sign in before adding to the Bag, which is the
+sign-up wall the web design exists to avoid.
+
+**B. An opaque guest-cart token.** The API mints a signed, random cart token on
+first write and returns it; the app stores it in `AsyncStorage` and sends it as
+`X-Cart-Token`. On sign-in the app presents both and the server runs the
+existing `claimCart`. Preserves anonymous carts. Cost: a new token, its
+signing/rotation, and a body-supplied cart identifier — the thing the web code
+deliberately refuses. It is only safe if the token is unguessable and verified,
+which is a real piece of backend work rather than a parameter change.
+
+**C. Do not ship a mobile cart in Phase 1.** The Bag opens
+`https://hugfab.com/cart` in the in-app browser. Honest, zero backend work, and
+the shopper signs in again in that browser — the seam the app already names.
+
+**Recommended: A.** It is the only one that needs no new security primitive, and
+"sign in to use your bag" is a normal mobile expectation where "sign in to
+browse" is not. B is worth doing later if guest-cart conversion proves it.
+
+### The contract, if A is chosen
+
+All three routes `requireApiUser()`, `private, no-store`, `RATE_LIMITS.write` on
+the mutations.
+
+#### `GET /api/cart`
+
+Returns `Cart` as `src/modules/cart/types.ts` defines it, minor-unit pairs
+composed into `Money`:
 
 ```jsonc
 { "data": {
@@ -176,32 +240,38 @@ implementation detail.** The app currently requires sign-in for the Bag.
 } }
 ```
 
-`unitPrice` and `lineTotal` are null on an unavailable line, which is excluded from
-the totals — as `cart/types.ts` already specifies. Every total comes from the
-database. The app renders `subtotal` and never adds the lines up itself.
+`unitPrice` and `lineTotal` are null on an unavailable line, which is excluded
+from the totals. Every total comes from the database; the app renders `subtotal`
+and never adds the lines up itself.
 
-### `POST /api/cart/items`
+#### `POST /api/cart/items`
 
-Body `{ "variantId": "<uuid>", "quantity": 1 }` — `201` with the **whole new cart**,
-same shape as `GET`. Returning the cart rather than `{ ok: true }` is what lets the
-app update the Bag badge and the totals from one round trip — and keeps the server
-the only thing that ever computed them.
+Body `{ "variantId": "<uuid>", "quantity": 1 }` → `201` with the **whole new
+cart**, same shape as `GET`. Returning the cart rather than `{ ok: true }` is
+what lets the app update the Bag badge and the totals in one round trip, and
+keeps the server the only thing that computed either.
 
-`UNPROCESSABLE` with the service's own sentence when the variant is unbuyable
-(inactive, unpriced, out of stock, not enough held). `CartOutcome` already carries
+`UNPROCESSABLE` with the service's own sentence when the variant is unbuyable —
+inactive, unpriced, out of stock, not enough held. `CartOutcome` already carries
 that message.
 
-### `PATCH /api/cart/items/:itemId`
+#### `PATCH /api/cart/items/:itemId`
 
-Body `{ "quantity": 3 }`, integer >= 0 — the whole new cart. Zero removes the line,
-which is what `setQuantity()` already does, so the app needs no separate DELETE —
-though `DELETE /api/cart/items/:itemId` as an alias would read better.
+Body `{ "quantity": 3 }`, integer ≥ 0 → the whole new cart. Zero removes the
+line, which is what `setQuantity()` already does, so no separate DELETE is
+needed — though `DELETE /api/cart/items/:itemId` as an alias would read better.
 
-### Not requested: checkout
+**Errors:** `UNAUTHORIZED` when signed out, `NOT_FOUND` for an item id not in
+this user's cart, `UNPROCESSABLE` for a refused quantity, `BAD_REQUEST` for a
+malformed body. **RLS:** unchanged — the route is the trust boundary, exactly as
+`repository.ts` already documents for the web.
 
-`placeOrder()` and `startPayment()` stay web-only for now. Razorpay's SDK is
-native and the app is Expo Go, so the Bag's checkout button opens
-`https://hugfab.com/cart` in a browser. See `docs/PLAN.md` Phase 2.
+### Checkout
+
+Out of scope for Phase 1 either way. Razorpay's SDK is native and the app runs
+in Expo Go, so the Bag's checkout button opens `https://hugfab.com/cart`. That
+hand-off must say plainly that payment happens on the website and that signing in
+again may be required — it does today. See `docs/PLAN.md` Phase 2.
 
 ---
 
