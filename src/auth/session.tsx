@@ -20,6 +20,7 @@ import {
   type ReactNode,
 } from 'react';
 import { startSessionRefresh, supabase } from '@/lib/supabase';
+import { signOutThisDevice } from './sign-out';
 import { features } from '@/lib/env';
 
 export interface SessionUser {
@@ -124,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       },
       async signOut() {
         if (!supabase) return;
-        await supabase.auth.signOut();
+        await signOutThisDevice(supabase.auth);
       },
     }),
     [status, user],
