@@ -4,19 +4,20 @@ What the mobile app needs from `rajdrawing-spec/HUGFAB-AI` and does not have.
 
 ## Status
 
-**§1, §2, §4, §5 and §6 are written but NOT MERGED.** They live on
-`feature/mobile-api` in HUGFAB-AI as pull request #173, which is green on CI,
-mergeable, and has had no review since it opened. Bearer authentication, the
-wishlist, orders and the address book are routes there; `GET /api/account/summary`
-carries `orderCount` and `wishlistCount`. That branch passes the repo's full CI
-suite (lint, format, typecheck, 2,149 tests, build) and documents every route in
-its own `docs/api.md`.
+**§1, §2, §4, §5 and §6 are MERGED.** Pull request #173 landed on HUGFAB-AI
+`main` on 2026-10-06 as `2fbea5a`. Bearer authentication, the wishlist, orders
+and the address book are routes there now, and `GET /api/account/summary`
+carries `orderCount` and `wishlistCount`.
 
-**Until #173 merges, the app has no authenticated surface at all.** Not just the
-four new endpoints: the web app authenticates with cookies, and a phone has no
-cookie jar, so `POST /api/stylist`, `GET /api/account/summary` and both console
-endpoints fail too. Only the public catalogue works — products, search, product
-detail and the affiliate click-out. See `docs/PRODUCTION-READINESS.md`.
+Until that merge the app had **no authenticated surface at all** — the web app
+authenticates with cookies and a phone has no cookie jar, so the stylist, the
+account summary and both console endpoints failed alongside the wishlist,
+orders and addresses. Every one of them now has an endpoint behind it.
+
+**Merged is not deployed.** Nothing in this repository establishes that
+`https://hugfab.com` is serving `2fbea5a`, and the container cannot reach it to
+find out. The screens degrade honestly either way: a 404 still reads as "not in
+the app yet, it works on the website", so nothing breaks if the deploy lags.
 
 The sections below are kept as written, because they are the argument for each
 route and the place to look when one behaves unexpectedly. Two of them turned out
@@ -265,6 +266,28 @@ needed — though `DELETE /api/cart/items/:itemId` as an alias would read better
 this user's cart, `UNPROCESSABLE` for a refused quantity, `BAD_REQUEST` for a
 malformed body. **RLS:** unchanged — the route is the trust boundary, exactly as
 `repository.ts` already documents for the web.
+
+### What changed on 6 October, and why it matters to this decision
+
+The merge that brought #173 in also brought several other pull requests, and two
+of them move the ground under this section. Verified against `2fbea5a`:
+
+- **The bag now holds HUGFAB Deals.** `src/modules/cart/types.ts` gained
+  `CartDeal` and `CartLine.cartDealId`: a deal in the bag is several lines, each
+  one unit priced at its share of the deal price, with its own honest reference
+  price, return policy and an `available` flag. `isBundleLine()` tells them
+  apart. A mobile Bag that renders lines as a flat list would show the units of
+  a bundle as unrelated items at prices that look wrong on their own.
+- **New endpoints the app does not know about:** `/api/deals/for-you`,
+  `/api/deals/quote`, `/api/deals/events`, `/api/delivery/estimate` and
+  `/api/recently-viewed`.
+
+Neither breaks anything today — the app has no cart and ignores unknown fields —
+but the contract proposed above is now incomplete. Whichever of the three
+options is chosen, `GET /api/cart` has to return the deals alongside the lines,
+and the Bag has to group a bundle's units under it. That is more work than this
+section estimated a week ago, and it is worth knowing before the decision rather
+than after.
 
 ### Checkout
 

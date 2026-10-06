@@ -20,11 +20,17 @@ this container can talk to the live API to prove the success paths.
 | Working tree | `git status --porcelain` | clean |
 | Branch vs `origin/main` | `git rev-list --left-right --count` | **1 ahead, 0 behind** |
 | `c423152` merged? | same | **No.** It is that one commit. |
-| `HUGFAB-AI` branch | `git branch --show-current` | `feature/mobile-api` |
-| #173 merged? | `git merge-base --is-ancestor` | **No.** |
-| #173 mergeable? | `git merge-tree --write-tree` | Yes, exit 0, zero conflicts |
+| #173 merged? | `git merge-base --is-ancestor` | **Yes**, 2026-10-06, as `2fbea5a` |
 
-`origin/main` on the web app is `b92e7a9`; #173's head is `1361c6b`.
+`origin/main` on the web app is `2fbea5a`. All seven of #173's route files are
+on it, `bearerToken()` and `createBearerSupabase()` are in
+`src/lib/supabase/server.ts`, and `AccountSummary` carries `orderCount` and
+`wishlistCount`.
+
+**This changes the project's shape.** Until 6 October the app had no
+authenticated surface at all. It now has an endpoint behind every signed-in
+screen. What has *not* been established is whether `main` is deployed, and no
+request from this container can tell — see §3.
 
 ### Production API base URL
 
@@ -32,7 +38,7 @@ this container can talk to the live API to prove the success paths.
 `.env.example`. Sibling hosts exist (`images.`, `sellers.`, `admin.`, `live.`,
 `community.`, `users.`, `analytics.`) but the app only needs the apex.
 
-### What the API serves **today**, without #173
+### What the API serves **today**
 
 From `git ls-tree origin/main` over `src/app/api/**/route.ts`:
 
@@ -98,9 +104,12 @@ for *every* authenticated call the app makes.
 
 ## 3. Blocked
 
+~~**#173 merging**~~ — merged 6 October. The blocker that gated everything else
+is gone.
+
 | Blocked on | What it stops |
 |---|---|
-| **#173 merging** | Every authenticated screen. Nothing else unblocks them. |
+| **Whether `main` is deployed** | Whether any of it is reachable yet. Merging is not deploying, and nothing here can check. |
 | **Network policy denying `hugfab.com`** | All success-path verification. Every screen so far has only ever been exercised against a *failing* request. |
 | **No Android device or emulator here** | Phase 16 entirely. A container cannot scan a QR code. |
 | **No Expo/EAS account or credentials** | Running a real build. Config can be written; a build cannot be produced. |
