@@ -194,7 +194,7 @@ function WishlistRow({
         accessibilityLabel={`Remove ${item.title} from your wishlist`}
         disabled={removing}
         onPress={onRemove}
-        className="self-start p-1"
+        className="shrink-0 self-start py-1 pl-3 pr-1"
       >
         <Text step="small" tone="muted">
           Remove

@@ -23,7 +23,17 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { cssInterop } from 'nativewind';
 import * as Haptics from 'expo-haptics';
+
+/**
+ * NativeWind maps `className` for React Native's own components, but
+ * `Animated.View` is produced by `createAnimatedComponent` and is not one of
+ * them — a `className` on it is dropped in silence, which is the same trap
+ * `LinearGradient` sets. Registering it here is what makes
+ * `containerClassName` below do anything at all.
+ */
+const AnimatedView = cssInterop(Animated.View, { className: 'style' });
 
 export interface TouchableProps extends Omit<PressableProps, 'style'> {
   /** How far to shrink. 'card' is subtler than 'control' because it moves more pixels. */
@@ -82,7 +92,7 @@ export function Touchable({
     // The shadow goes on the animating wrapper, not the Pressable: Android draws
     // `elevation` from the view's own background, and a transparent Pressable
     // inside a scaled parent casts nothing.
-    <Animated.View
+    <AnimatedView
       className={containerClassName}
       style={[style, { transform: [{ scale }] }]}
     >
@@ -103,6 +113,6 @@ export function Touchable({
       >
         {children}
       </Pressable>
-    </Animated.View>
+    </AnimatedView>
   );
 }
