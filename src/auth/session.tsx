@@ -21,7 +21,8 @@ import {
 } from 'react';
 import { startSessionRefresh, supabase } from '@/lib/supabase';
 import { signOutThisDevice } from './sign-out';
-import { features } from '@/lib/env';
+import { requestPasswordReset } from './password-reset';
+import { env, features } from '@/lib/env';
 
 export interface SessionUser {
   id: string;
@@ -38,6 +39,12 @@ export interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
+  /**
+   * Ask for a reset link. **Resolves whether or not the address is registered**
+   * — deliberately, so the screen cannot become an account-enumeration oracle.
+   * See `password-reset.ts`; do not "improve" this by reporting the outcome.
+   */
+  requestPasswordReset: (email: string) => Promise<void>;
 }
 
 export interface SignUpResult {
@@ -126,6 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       async signOut() {
         if (!supabase) return;
         await signOutThisDevice(supabase.auth);
+      },
+      async requestPasswordReset(email) {
+        /*
+         * Returning silently when Supabase or the base URL is missing keeps the
+         * promise this function makes: one answer for every outcome. The screen
+         * is unreachable without `available` anyway.
+         */
+        if (!supabase || !env.apiBaseUrl) return;
+        await requestPasswordReset(supabase.auth, email, env.apiBaseUrl);
       },
     }),
     [status, user],
