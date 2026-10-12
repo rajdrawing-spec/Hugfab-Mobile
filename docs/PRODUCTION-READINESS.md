@@ -1,12 +1,14 @@
 # Production readiness
 
-What is actually true as of **2026-09-30**, verified against the repositories
+What is actually true as of **2026-10-12**, verified against the repositories
 rather than carried over from `docs/PLAN.md`. Where a claim could be checked it
 was checked, and the check is named.
 
-The app cannot be called production-ready today, and the reason is not the app:
-**no authenticated surface can work until HUGFAB-AI#173 merges**, and nothing in
-this container can talk to the live API to prove the success paths.
+The app cannot be called production-ready today, and the reason is no longer the
+backend. #173 merged on 6 October, so every authenticated screen now has an
+endpoint behind it. What remains is that **nothing in this container can talk to
+the live API**, so not one success path has ever been exercised — and the cart
+still has no contract a phone can use.
 
 ---
 
@@ -18,14 +20,17 @@ this container can talk to the live API to prove the success paths.
 |---|---|---|
 | `Hugfab-Mobile` branch | `git branch --show-current` | `claude/nifty-albattani-w29cp9` |
 | Working tree | `git status --porcelain` | clean |
-| Branch vs `origin/main` | `git rev-list --left-right --count` | **1 ahead, 0 behind** |
-| `c423152` merged? | same | **No.** It is that one commit. |
+| Branch vs `origin/main` | `git rev-list --left-right --count` | **14 ahead, 0 behind** |
+| PR #3 merged? | `pull_request_read` | **No.** Open, green, 0 reviews since 30 September. |
 | #173 merged? | `git merge-base --is-ancestor` | **Yes**, 2026-10-06, as `2fbea5a` |
+| Web `origin/main` now | `git log -1 origin/main` | `4b9111b` |
 
-`origin/main` on the web app is `2fbea5a`. All seven of #173's route files are
-on it, `bearerToken()` and `createBearerSupabase()` are in
-`src/lib/supabase/server.ts`, and `AccountSummary` carries `orderCount` and
-`wishlistCount`.
+All seven of #173's route files are on web `main`, `bearerToken()` and
+`createBearerSupabase()` are in `src/lib/supabase/server.ts`, and
+`AccountSummary` carries `orderCount` and `wishlistCount`.
+
+Web `main` has moved on since: it is `4b9111b`, and the move brought
+`/api/account/addresses` with it — which this app now uses. See §2.
 
 **This changes the project's shape.** Until 6 October the app had no
 authenticated surface at all. It now has an endpoint behind every signed-in
@@ -52,8 +57,20 @@ From `git ls-tree origin/main` over `src/app/api/**/route.ts`:
 | `GET /api/account/summary` | **cookie session** | Account |
 | `GET /api/merchant/attention` | **cookie session** | Console |
 | `GET /api/admin/attention` | **cookie session** | Console |
+| `GET/POST /api/wishlist`, `DELETE /[productId]` | bearer | Wishlist |
+| `GET /api/orders`, `GET /[orderId]` | bearer | Orders |
+| `GET/POST /api/account/addresses` | bearer | Addresses |
+| `PATCH/DELETE /api/account/addresses/[id]` | bearer | Addresses |
+| `POST /api/account/addresses/[id]/default` | bearer | Addresses |
 
-Wishlist, orders and addresses have no route on `main` at all.
+Routes that exist and this app deliberately does **not** call:
+
+| Route | Why not |
+|---|---|
+| `GET /api/delivery/estimate` | Answers `unavailable` until a courier serviceability service is connected. A PIN box whose only possible answer today is "we cannot say" is a control for a feature that does not exist. |
+| `GET /api/deals/for-you`, `/quote`, `/events` | Part of HUGFAB Deals, which is bound up with the cart decision in §6. |
+| `GET /api/recently-viewed` | Needs the write side (`/api/views`) wired first, or it is permanently empty on a phone. |
+| `/api/live/*`, `/api/shares`, `/api/plus/*` | Out of Phase 1 scope — `docs/PLAN.md`. |
 
 ### The finding that matters most
 
@@ -81,8 +98,8 @@ for *every* authenticated call the app makes.
 | `.env.local` | absent (correct; git-ignored) |
 | `eas.json` | present (added 2026-09-30) |
 | Android `versionCode` | managed remotely by EAS (`appVersionSource: remote`) |
-| App icon | still the Expo template's |
-| Tests in the mobile repo | 66, added 2026-09-30 |
+| App icon | a generated placeholder, no longer the Expo template's — §4 |
+| Tests in the mobile repo | 89 |
 | `npx expo-doctor` | 19/21 pass; the 2 failures are this container's network, not the project |
 | `npx expo export --platform android` | bundles, 5.3 MB Hermes bytecode |
 
@@ -95,12 +112,20 @@ for *every* authenticated call the app makes.
 - `src/api/client.ts` is the only `fetch` in the app: envelope unwrap, bearer
   attach, one 401 refresh-and-replay, `x-request-id` on every error, 15s timeout.
 - Money is integer minor units end to end; no arithmetic in the app.
-- #173 is written, green on repo CI, mergeable, and re-verified against the
-  moved base (PR #174, catalogue switches): no file overlap, no new API routes,
-  and `/api/conversions` — the one route with its own Bearer scheme — uses
-  `createAdminSupabase`, so #173's bearer routing cannot reach it.
+- #173 merged on 6 October, so bearer auth, wishlist, orders, order detail,
+  addresses and the account counts are all live.
 - `c423152` fixes a NativeWind bug that made `containerClassName` a no-op,
   which had the tab bar and the Filter/Sort row laid out wrongly on every screen.
+- **The address book** (`1e8455a`): list, add, edit, delete, set default,
+  against the routes that shipped on 6 October. `unavailable` is honoured as
+  distinct from empty, and no address rule is reimplemented here — the form
+  posts and renders the server's field errors.
+- **Password recovery** (`5b9b73a`) and **sign out everywhere else** (`2c8ad07`).
+  The first deliberately gives one answer for every outcome, so the screen
+  cannot be used to discover who has an account.
+- **Product tags** (`c289c69`) are drawn; they had been arriving and being
+  discarded since #175.
+- A **placeholder launcher icon** (`02ed9a3`) replaces the Expo template's.
 
 ## 3. Blocked
 
@@ -111,22 +136,30 @@ is gone.
 |---|---|
 | **Whether `main` is deployed** | Whether any of it is reachable yet. Merging is not deploying, and nothing here can check. |
 | **Network policy denying `hugfab.com`** | All success-path verification. Every screen so far has only ever been exercised against a *failing* request. |
-| **No Android device or emulator here** | Phase 16 entirely. A container cannot scan a QR code. |
+| **No Android device or emulator here** | `docs/DEVICE-QA.md` entirely. A container cannot scan a QR code. |
 | **No Expo/EAS account or credentials** | Running a real build. Config can be written; a build cannot be produced. |
 | **Cart architecture decision** | The Bag, and therefore checkout. See §6. |
+| **PR #3 unreviewed** | Everything above is on that branch. It has been green with 0 reviews since 30 September. |
 
 ## 4. Broken or wrong
 
 1. **`containerClassName` was a silent no-op.** Fixed in `c423152`, PR open,
    not yet merged. Tab bar and listing controls are mislaid until it lands.
+1. **Field errors were typed as arrays.** `ApiError.fieldErrors` said
+   `Record<string, string[]>`; the web app sends `Record<string, string>`. A
+   form indexing `[0]` would have rendered the message's first *character*
+   under the field. Fixed in `3d28f06`, before the address form became its
+   first consumer.
 2. ~~**No tests at all.**~~ Fixed: 66 unit tests over money, the error mapping,
    the API client and the link handling. `npm test`. They do not test the API —
    see §3 — and must never be cited as if they did.
 3. ~~**No `versionCode`.**~~ Fixed by `eas.json` with `appVersionSource: remote`
    and `autoIncrement` on the production profile, so EAS owns the number and two
    builds cannot collide on it.
-4. **The app icon is the Expo template's**, as is the adaptive-icon foreground.
-   This is a hard blocker for a store submission and needs artwork, not code.
+4. ~~**The app icon is the Expo template's.**~~ Replaced in `02ed9a3` with a
+   generated H monogram in the brand pink, verified to sit inside Android's
+   adaptive safe zone. **It is a placeholder, not a logo** — a store listing
+   still wants real artwork, and that needs a designer, not code.
 5. **The native splash is a background colour only.** `app.json` carries the
    legacy top-level `splash` key with no image, and `expo-splash-screen` is a
    dependency but not a config plugin. The app draws its own branded splash
@@ -138,10 +171,15 @@ is gone.
 
 Ordered by what unblocks the most.
 
-1. **Merge #173.** Bearer auth plus wishlist, orders, order detail, addresses,
-   account summary counts.
-2. **A cart contract for a client with no cookie jar** — see §6.
-3. Everything in `docs/API-GAPS.md` §8: ratings, size/colour/discount filters,
+1. ~~**Merge #173.**~~ Done, 6 October.
+2. **A cart contract for a client with no cookie jar** — see §6. The only
+   remaining backend blocker for a complete shopping flow.
+3. A **sessions endpoint**, if a device list is ever wanted beside "sign out
+   everywhere else". Supabase does not expose its sessions through the client
+   SDK, so the app can revoke the others but cannot name them.
+4. **Courier serviceability**, which `GET /api/delivery/estimate` is waiting on
+   before it can answer anything but `unavailable`.
+5. Everything in `docs/API-GAPS.md` §8: ratings, size/colour/discount filters,
    price drops, trending, `previousPrice` on a wishlist item, price alerts,
    community read and write, stylist rationale, notifications.
 
@@ -189,21 +227,23 @@ is named in `docs/API-GAPS.md` §3.
 
 ## 8. Recommended execution order
 
-1. **Merge PR #3** (`c423152`). Small, verified, fixes layout everywhere.
-2. **Review and merge HUGFAB-AI#173.** Nothing authenticated moves until it does.
-3. **Deploy #173** to staging or production.
-4. **Widen the network policy**, or run the verification from a machine that can
+1. **Merge PR #3.** Fourteen commits, green, unreviewed since 30 September.
+   Everything below is blocked behind it.
+2. **Deploy web `main`** (`4b9111b`) if it is not already.
+3. **Widen the network policy**, or run the verification from a machine that can
    reach `hugfab.com`.
-5. **Verify the success paths** endpoint by endpoint against real data — the
+4. **Verify the success paths** endpoint by endpoint against real data — the
    response shapes, not just the status codes. A field-name mismatch looks
-   exactly like what has been seen so far.
+   exactly like what has been seen so far, and `src/api/types.ts` is mirrored by
+   hand.
+5. **Run `docs/DEVICE-QA.md` on a real Android phone.**
 6. **Decide the cart question**, then build the contract in §6.
-7. **Run on a real Android device**; record results in `docs/DEVICE-QA.md`.
-8. **Configure EAS and build an AAB.**
-9. **Play Store assets and declarations.**
+7. **Configure EAS and build an AAB.**
+8. **Real icon artwork, Play Store assets and declarations.**
 
-Steps 1 and 2 are the whole critical path. Steps 5 and 7 are the two that cannot
-be done from this container at all.
+Step 1 is the whole critical path. Steps 4 and 5 are the two that cannot be done
+from this container at all, and together they are the only thing standing
+between "every screen renders" and "this app works".
 
 ---
 
@@ -211,4 +251,8 @@ be done from this container at all.
 
 It is not a claim that the app works. Every screen in it has been rendered, and
 none of them has ever received a successful response from the real API. That
-distinction is the single most important thing on this page.
+distinction is the single most important thing on this page, and nothing added
+since 30 September has changed it — the address book, password recovery and the
+rest are written and tested, not proven.
+
+`docs/DEVICE-QA.md` is the list of what proving them would involve.

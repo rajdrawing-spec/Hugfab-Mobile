@@ -298,24 +298,44 @@ again may be required — it does today. See `docs/PLAN.md` Phase 2.
 
 ---
 
-## 4. Addresses — BUILT
+## 4. Addresses — SHIPPED AND IN USE
 
-Service: `src/modules/addresses/service.ts` — `getAddressBook()`, `saveAddress()`,
-`removeAddress()`, `makeDefault()`. `SavedAddress` is already a clean domain type
-with no money in it, so these are the most mechanical routes on this list.
+**Landed 2026-10-06 and wired up on 2026-10-12** (`app/account/addresses.tsx`,
+`src/api/addresses.ts`). The routes' own comments say what they are: "the
+address book over HTTP, for the mobile app".
+
+What shipped differs from what this section originally proposed, in two ways
+that matter, so the live contract is recorded here rather than the guess:
 
 | Route | Body | Returns |
 |---|---|---|
-| `GET /api/account/addresses` | — | `{ "data": { "addresses": SavedAddress[], "defaultId": string \| null } }` |
-| `POST /api/account/addresses` | the `saveAddress` schema | `201 { "data": { "address": SavedAddress } }` |
-| `PATCH /api/account/addresses/:id` | same, partial | `200 { "data": { "address": SavedAddress } }` |
-| `DELETE /api/account/addresses/:id` | — | `200 { "data": { "removed": true } }` |
-| `POST /api/account/addresses/:id/default` | — | `200 { "data": { "defaultId": string } }` |
+| `GET /api/account/addresses` | — | `{ addresses, defaultId, unavailable }` |
+| `POST /api/account/addresses` | the `saveAddress` schema | `201 { address, addresses }` |
+| `PATCH /api/account/addresses/:id` | same (id comes from the path) | `200 { address, addresses }` |
+| `DELETE /api/account/addresses/:id` | — | `200 { removed, addresses }` |
+| `POST /api/account/addresses/:id/default` | — | `200 { defaultId, addresses }` |
 
-`saveAddress()` takes `unknown` and validates with its own Zod schema, so the route
-passes the parsed body straight through and maps a schema failure to `BAD_REQUEST`
-with `details.fields` — exactly what `docs/api.md` documents and what the app's
-form already expects.
+**1. Every write returns the whole book**, not just the row that changed. That
+is not redundancy — the server settles rules the client must not reimplement
+(the first address saved becomes the default; deleting the default promotes the
+next one), so the app replaces its cache from the response instead of patching a
+row and re-sorting.
+
+**2. `GET` carries `unavailable`.** A book that could not be read is not a book
+with no addresses in it. The flag exists so a client cannot conflate them, and
+the screen gives it its own notice rather than the empty state.
+
+Two details the form had to get right:
+
+- `line2` is `z.string().trim().max(200)` with **no** `.optional()`, so an
+  address with no second line must send `""`. Omitting the key is a validation
+  failure.
+- `details.fields` maps field → **message**, a string. The error table higher up
+  in `docs/api.md` says "messages", and this app had it typed as `string[]`
+  until `3d28f06`.
+
+Still open: there is no cap exposed to the client, but the service refuses past
+**20 addresses** with a message the form shows as-is.
 
 ---
 
