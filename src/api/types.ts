@@ -112,6 +112,15 @@ export interface ProductDetail extends ProductBase {
   /** `offers[0]`, so the Best Price badge and the top row agree by construction. */
   bestOffer: ProductOffer | null;
   variants: ProductVariant[];
+  /**
+   * One word each — "linen", "monsoon", "office". The web app's comment on this
+   * field says where they belong: "shown as chips under the details".
+   *
+   * Always present on this response (the type is not optional there), but read
+   * defensively at the point of use anyway: this is a hand-mirrored type from
+   * another repository, and an older cached response has no such field.
+   */
+  tags: string[];
 }
 
 export interface Paginated<T> {
