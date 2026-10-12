@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { signOutThisDevice } from './sign-out';
+import { signOutOtherDevices, signOutThisDevice } from './sign-out';
 
 /** Records what scope the caller asked for. */
 function auth(error: { message: string } | null = null) {
@@ -39,6 +39,29 @@ describe('signing out of this device', () => {
     // leaves a live session behind on a phone somebody has just handed back.
     const a = auth({ message: 'network down' });
     await expect(signOutThisDevice(a as never)).rejects.toMatchObject({
+      message: 'network down',
+    });
+  });
+});
+
+describe('signing out of every other device', () => {
+  it("asks for the 'others' scope, never 'global'", async () => {
+    /*
+     * 'global' would revoke this device's token too, so the person who just
+     * asked to secure their account would be handed a sign-in screen — on the
+     * one device they are holding and trust. 'others' keeps this session.
+     */
+    const a = auth();
+    await signOutOtherDevices(a as never);
+    expect(a.calls).toEqual([{ scope: 'others' }]);
+  });
+
+  it('throws when Supabase refuses, rather than claiming the other sessions are gone', async () => {
+    // The opposite trade from `requestPasswordReset`, and deliberately so.
+    // Telling somebody "done" while the laptop they are worried about is still
+    // signed in misinforms them about the exact thing they came here to fix.
+    const a = auth({ message: 'network down' });
+    await expect(signOutOtherDevices(a as never)).rejects.toMatchObject({
       message: 'network down',
     });
   });

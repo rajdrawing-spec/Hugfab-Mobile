@@ -20,7 +20,7 @@ import {
   type ReactNode,
 } from 'react';
 import { startSessionRefresh, supabase } from '@/lib/supabase';
-import { signOutThisDevice } from './sign-out';
+import { signOutOtherDevices, signOutThisDevice } from './sign-out';
 import { requestPasswordReset } from './password-reset';
 import { env, features } from '@/lib/env';
 
@@ -39,6 +39,11 @@ export interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
+  /**
+   * End every other session and keep this one. Throws on failure, unlike
+   * `requestPasswordReset` — see `sign-out.ts` for why the two differ.
+   */
+  signOutOthers: () => Promise<void>;
   /**
    * Ask for a reset link. **Resolves whether or not the address is registered**
    * — deliberately, so the screen cannot become an account-enumeration oracle.
@@ -133,6 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       async signOut() {
         if (!supabase) return;
         await signOutThisDevice(supabase.auth);
+      },
+      async signOutOthers() {
+        if (!supabase) throw new AuthError(NOT_CONFIGURED);
+        await signOutOtherDevices(supabase.auth);
       },
       async requestPasswordReset(email) {
         /*

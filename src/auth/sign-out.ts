@@ -23,9 +23,11 @@
  * the phone and a shopper who signs out on the website should mean the same
  * thing by it.
  *
- * The counterpart, `signOut({ scope: 'others' })`, is deliberately not ported.
- * It belongs beside a device list and a password reset, and the app has
- * neither — see `docs/API-GAPS.md`.
+ * The counterpart, `signOut({ scope: 'others' })`, is below. It was left out
+ * at first because it belongs beside a password reset — "sign out everywhere
+ * else" is what somebody reaches for when they think an account is
+ * compromised, and it is half an answer without a way to change the password.
+ * `password-reset.ts` is the other half, so it is here now.
  */
 
 /**
@@ -38,7 +40,9 @@
  * shape is structural, so the real `supabase.auth` satisfies it.
  */
 interface Auth {
-  signOut(options: { scope: 'local' }): Promise<{ error: { message: string } | null }>;
+  signOut(options: {
+    scope: 'local' | 'others';
+  }): Promise<{ error: { message: string } | null }>;
 }
 
 /**
@@ -49,5 +53,27 @@ interface Auth {
  */
 export async function signOutThisDevice(auth: Auth): Promise<void> {
   const { error } = await auth.signOut({ scope: 'local' });
+  if (error) throw error;
+}
+
+/**
+ * Ends every *other* session and keeps this one. What somebody reaches for
+ * after losing a phone, or after signing in on a friend's laptop and not
+ * remembering whether they signed out.
+ *
+ * `'others'`, never `'global'`. Global would revoke this device's token too,
+ * which means the person who just asked to secure their account is handed a
+ * sign-in screen — and the one device they are holding, and trust, is the one
+ * they would then have to re-authenticate on. The phone keeps its session and
+ * everything else loses one.
+ *
+ * Unlike `requestPasswordReset`, failure here **is** reported. There is no
+ * enumeration concern — this is an authenticated action on the caller's own
+ * account — and silence would be dangerous in the other direction: somebody
+ * told "done" while a stolen laptop is still signed in has been actively
+ * misinformed about the thing they were worried about.
+ */
+export async function signOutOtherDevices(auth: Auth): Promise<void> {
+  const { error } = await auth.signOut({ scope: 'others' });
   if (error) throw error;
 }

@@ -10,7 +10,8 @@
  * 6 October, so they are a screen now — `app/account/addresses.tsx`.
  */
 
-import { ScrollView, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQueries, useQuery } from '@tanstack/react-query';
@@ -246,6 +247,8 @@ export default function AccountScreen(): React.JSX.Element {
           />
         </View>
 
+        <SecuritySection />
+
         <View className="p-4">
           <Button
             label="Sign out"
@@ -256,6 +259,96 @@ export default function AccountScreen(): React.JSX.Element {
           />
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * Signing out everywhere else.
+ *
+ * A security action, so it behaves like one. It confirms first, because it
+ * cannot be undone and it will log the person out of the website mid-checkout
+ * if that is where they were. And it reports failure — unlike the password
+ * reset, where silence is the point. Telling somebody "done" while the laptop
+ * they are worried about is still signed in is worse than telling them nothing.
+ *
+ * `scope: 'others'` keeps this device's session, so the one phone they are
+ * holding does not become the thing they have to sign back in to.
+ *
+ * There is no list of devices to show. Supabase does not expose its sessions
+ * through the client SDK, so a list would need an endpoint in HUGFAB-AI —
+ * `docs/API-GAPS.md`. "Everywhere else" is the whole of what can honestly be
+ * offered today, and it is the part people actually want.
+ */
+function SecuritySection(): React.JSX.Element {
+  const { signOutOthers } = useAuth();
+  const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle');
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(): Promise<void> {
+    setError(null);
+    setState('busy');
+    try {
+      await signOutOthers();
+      setState('done');
+    } catch (cause) {
+      setState('idle');
+      setError(cause instanceof Error ? cause.message : 'That did not work.');
+    }
+  }
+
+  return (
+    <View className="bg-surface mt-3 p-4">
+      <Text step="h3">Security</Text>
+      <Text step="small" tone="muted" className="mt-1">
+        Lost a phone, or signed in somewhere you should not have? This ends every other
+        session and keeps this one.
+      </Text>
+
+      {state === 'done' ? (
+        <Text
+          step="small"
+          tone="primary"
+          className="mt-3"
+          accessibilityLiveRegion="polite"
+        >
+          Every other session has been signed out. This phone is still signed in.
+        </Text>
+      ) : (
+        <Button
+          label="Sign out everywhere else"
+          variant="outline"
+          size="sm"
+          pill
+          className="mt-3 self-start"
+          loading={state === 'busy'}
+          onPress={() =>
+            Alert.alert(
+              'Sign out everywhere else?',
+              'Every other phone, tablet and browser will be signed out, including the HugFab website. This phone stays signed in.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Sign them out',
+                  style: 'destructive',
+                  onPress: () => void run(),
+                },
+              ],
+            )
+          }
+        />
+      )}
+
+      {error ? (
+        <Text
+          step="small"
+          tone="error"
+          className="mt-3"
+          accessibilityLiveRegion="assertive"
+        >
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
