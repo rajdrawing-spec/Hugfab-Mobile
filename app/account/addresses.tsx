@@ -385,8 +385,20 @@ function AddressForm({
    */
   const fields = save.error instanceof ApiError ? save.error.fieldErrors : null;
 
-  /** The summary line: the API's own sentence, unless it is only field errors. */
-  const summary = save.isError && !fields ? describeError(save.error).message : null;
+  /**
+   * The banner at the top of the form, shown for **any** failed save.
+   *
+   * It used to be suppressed when there were field errors, on the theory that
+   * marking the fields said it better. Screenshotting the form showed why that
+   * was wrong: the sheet is capped at 85% of the screen and the Save button is
+   * pinned below it, so a form whose rejected fields are all below the fold
+   * answers a tap on Save with no visible change at all. On a phone with the
+   * keyboard up there is even less room.
+   *
+   * The API's own sentence for a schema failure is "Some details need fixing",
+   * which is exactly the right thing to say above a set of marked fields.
+   */
+  const summary = save.isError ? describeError(save.error).message : null;
 
   function set<K extends keyof AddressInput>(key: K, value: AddressInput[K]): void {
     setForm((previous) => ({ ...previous, [key]: value }));
