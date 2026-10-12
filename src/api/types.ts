@@ -148,6 +148,72 @@ export interface WishlistItem {
   savedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// The address book
+//
+// Mirrored from HUGFAB-AI `src/modules/addresses/types.ts`. The routes shipped
+// on 2026-10-06 and their own comments say they are "the address book over
+// HTTP, for the mobile app", so this is no longer a gap.
+// ---------------------------------------------------------------------------
+
+export type AddressKind = 'home' | 'work' | 'other';
+
+export interface SavedAddress {
+  id: string;
+  /** What the shopper called it: "Home", "Mum's". 1–24 characters. */
+  label: string;
+  kind: AddressKind;
+  name: string;
+  /** Ten digits, stored without the +91 or leading 0 the schema strips. */
+  phone: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  isDefault: boolean;
+  /** How many orders have gone here. The web app orders the book by it. */
+  useCount: number;
+  lastUsedAt: string | null;
+}
+
+/**
+ * `GET /api/account/addresses`.
+ *
+ * **`unavailable` is not "empty".** The service returns it when the book could
+ * not be read, and both the route and `docs/api.md` are explicit that the
+ * distinction travels rather than being flattened: "a book that could not be
+ * read is not a book with no addresses in it, and a client that conflates them
+ * tells somebody their saved addresses are gone." The screen honours that.
+ */
+export interface AddressBook {
+  addresses: SavedAddress[];
+  defaultId: string | null;
+  unavailable: boolean;
+}
+
+/**
+ * What a save sends. Validated server-side by the same schema checkout uses, so
+ * an address that saves is an address an order accepts — which is why this app
+ * does not re-check the PIN or mobile rules. See `addressFieldsSchema`.
+ *
+ * `line2` is a required empty string rather than optional: the schema is
+ * `z.string().trim().max(200)` with no `.optional()`, so omitting it is a
+ * validation failure rather than "no second line".
+ */
+export interface AddressInput {
+  label: string;
+  kind: AddressKind;
+  name: string;
+  phone: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  makeDefault?: boolean;
+}
+
 /** docs/API-GAPS.md §3. */
 export interface CartLine {
   itemId: string;

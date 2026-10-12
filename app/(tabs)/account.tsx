@@ -5,8 +5,9 @@
  * than 401 — "nobody is signed in" is an answer, not an error — so this screen can
  * ask it without knowing first.
  *
- * Addresses are not here. The endpoints are `docs/API-GAPS.md` §4 and an address
- * form that cannot save is worse than a link to one that can.
+ * Addresses used to be a link to the website, because an address form that
+ * cannot save is worse than a link to one that can. The routes shipped on
+ * 6 October, so they are a screen now — `app/account/addresses.tsx`.
  */
 
 import { ScrollView, View } from 'react-native';
@@ -171,6 +172,11 @@ export default function AccountScreen(): React.JSX.Element {
           />
           <MenuRow icon="bag-outline" label="Bag" onPress={() => router.push('/cart')} />
           <MenuRow
+            icon="location-outline"
+            label="Addresses"
+            onPress={() => router.push('/account/addresses')}
+          />
+          <MenuRow
             icon="search-outline"
             label="Browse the catalogue"
             onPress={() => router.push('/search')}
@@ -227,15 +233,9 @@ export default function AccountScreen(): React.JSX.Element {
             These are not in the app yet. See docs/API-GAPS.md for what each one needs.
           </Text>
           <Button
-            label="Addresses"
-            variant="text"
-            className="mt-2 self-start"
-            onPress={() => void openWebPage('/account/addresses')}
-          />
-          <Button
             label="Returns"
             variant="text"
-            className="self-start"
+            className="mt-2 self-start"
             onPress={() => void openWebPage('/account/returns')}
           />
           <Button
