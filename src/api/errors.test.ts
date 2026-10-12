@@ -78,11 +78,39 @@ describe('apiErrorFromBody', () => {
 });
 
 describe('ApiError', () => {
-  it('offers field errors from a BAD_REQUEST, for a form', () => {
-    const error = new ApiError('BAD_REQUEST', 'Check the form.', 400, {
-      fields: { postalCode: ['Enter six digits.'] },
+  it('offers one message per field from a BAD_REQUEST, for a form', () => {
+    /*
+     * The shape the web app actually sends. `fieldErrors()` in
+     * src/modules/addresses/schema.ts keeps the first issue per path, so the
+     * value is a string — and a form indexing [0] into it would render "A",
+     * the first letter of the message, under the field.
+     */
+    const error = new ApiError('BAD_REQUEST', 'Some details need fixing.', 400, {
+      fields: { postalCode: 'A PIN code is six digits, not starting with zero' },
     });
-    expect(error.fieldErrors).toEqual({ postalCode: ['Enter six digits.'] });
+    expect(error.fieldErrors).toEqual({
+      postalCode: 'A PIN code is six digits, not starting with zero',
+    });
+  });
+
+  it('takes the first message when a field carries an array of them', () => {
+    // docs/api.md's error table says "messages", the address section says
+    // "message". Normalising both beats trusting whichever was read last.
+    const error = new ApiError('BAD_REQUEST', 'Check the form.', 400, {
+      fields: { phone: ['Enter a 10-digit Indian mobile number', 'Too short'] },
+    });
+    expect(error.fieldErrors).toEqual({
+      phone: 'Enter a 10-digit Indian mobile number',
+    });
+  });
+
+  it('drops a field whose message is not a usable string', () => {
+    // Rendering `null` or `[]` beside a field is worse than rendering nothing:
+    // the border still goes red, so the field is still marked.
+    const error = new ApiError('BAD_REQUEST', 'Check the form.', 400, {
+      fields: { city: null, state: [], name: '', line1: 'Enter the street' },
+    });
+    expect(error.fieldErrors).toEqual({ line1: 'Enter the street' });
   });
 
   it('has no field errors when the details carry none', () => {
