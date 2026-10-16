@@ -135,6 +135,9 @@ shopper their dashboard was coming soon.
 - File-based routing under `app/`. A route file wires and lays out; logic lives
   in `src/`.
 - `EXPO_PUBLIC_*` for anything read at runtime; everything else is a build
-  secret and does not belong in this repo.
+  secret and does not belong in this repo. The three runtime values have
+  committed defaults in `src/lib/public-config.ts` — the live API and the web
+  app's Supabase project, all three already public — so a fresh clone is
+  configured and an env var is an override. Only the anon key, ever.
 - Commits are reviewable steps. `npx tsc --noEmit` and `npx eslint .` clean
   before each one.

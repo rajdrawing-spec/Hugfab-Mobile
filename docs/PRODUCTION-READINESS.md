@@ -95,11 +95,12 @@ for *every* authenticated call the app makes.
 | | State |
 |---|---|
 | `hugfab.com` reachable from this container | **No** — the network policy answers 403 to CONNECT |
-| `.env.local` | absent (correct; git-ignored) |
+| Backend configuration | committed in `src/lib/public-config.ts` — the live API and the web app's Supabase project (§7) |
+| `.env.local` | absent, and no longer needed; it overrides the above when present (git-ignored) |
 | `eas.json` | present (added 2026-09-30) |
 | Android `versionCode` | managed remotely by EAS (`appVersionSource: remote`) |
 | App icon | a generated placeholder, no longer the Expo template's — §4 |
-| Tests in the mobile repo | 89 |
+| Tests in the mobile repo | 96 |
 | `npx expo-doctor` | 19/21 pass; the 2 failures are this container's network, not the project |
 | `npx expo export --platform android` | bundles, 5.3 MB Hermes bytecode |
 
@@ -210,15 +211,27 @@ is named in `docs/API-GAPS.md` §3.
 
 ## 7. Needs production configuration
 
-- `EXPO_PUBLIC_API_BASE_URL=https://hugfab.com` in the build profile.
-- `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the anon key
-  only. `SUPABASE_SERVICE_ROLE_KEY` must never be present; anything in an APK is
-  readable.
+- ~~`EXPO_PUBLIC_API_BASE_URL=https://hugfab.com` in the build profile.~~ Set in
+  all three `eas.json` profiles, and the committed default besides.
+- ~~`EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` — the anon
+  key only.~~ Both are committed in `src/lib/public-config.ts`, pointing at
+  project `ysozrdmjtguwawywkgsj` (`hugfabAI`) — the project HUGFAB-AI
+  authenticates against, which is what makes the bearer token this app sends
+  mean anything to `createBearerSupabase` there.
+
+  Committed, not held as an EAS environment variable, which was this document's
+  earlier recommendation and was the weaker trade. The anon key is public by
+  construction: the website ships it to every browser, and `EXPO_PUBLIC_*` is
+  inlined into a bundle anyone can unzip out of an APK. Keeping it out of the
+  repository bought no secrecy and cost a clone that cannot sign in until
+  somebody is told two values out of band. Rotation now costs a one-line commit;
+  an environment variable still overrides it, so a staging project needs no
+  change here.
+
+  `SUPABASE_SERVICE_ROLE_KEY` must never be present — in the repo, in a build
+  profile, or anywhere a client can reach. `src/lib/env.test.ts` asserts the
+  committed key's `role` claim is `anon`.
 - ~~`eas.json` with development / preview / production profiles.~~ Added.
-  `EXPO_PUBLIC_API_BASE_URL` is set per profile; the two Supabase values are
-  deliberately **not** committed there. The anon key is public by construction
-  — it is inlined into the bundle — but holding it as an EAS environment
-  variable lets it rotate without a commit. Set it with `eas env:create`.
 - An Android signing keystore held by EAS (`eas credentials`).
 - App icon, adaptive icon, splash artwork, feature graphic, screenshots.
 - Privacy policy and data-safety declarations for the Play listing.

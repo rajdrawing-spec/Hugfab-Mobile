@@ -21,16 +21,17 @@ with no mark has not been run.
 |---|---|
 | Phone | Android 10 or newer, Expo Go installed |
 | Network | The phone and the dev machine on the same Wi-Fi |
-| `.env.local` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY` |
+| `.env.local` | not needed — `src/lib/public-config.ts` points at `https://hugfab.com` and the web app's Supabase project. Override only to test against something else |
 | Account | A real HugFab account, and ideally a second one with a shop |
 
 Two things to confirm first, because everything below is meaningless otherwise:
 
 1. **`main` is deployed.** `curl https://hugfab.com/api/health` and check `sha`
    against the commit you expect. Merging is not deploying.
-2. **The anon key is the anon key.** `EXPO_PUBLIC_*` is inlined into the bundle
-   and readable by anyone with the APK. If `SUPABASE_SERVICE_ROLE_KEY` is in
-   `.env.local`, stop and remove it.
+2. **The anon key is the anon key.** The committed one carries `"role":"anon"`
+   and a test asserts it. Anything `EXPO_PUBLIC_*` is inlined into the bundle
+   and readable by anyone with the APK, so if `SUPABASE_SERVICE_ROLE_KEY` is in
+   `.env.local` or in `public-config.ts`, stop and remove it.
 
 ```
 npx expo start          # then scan the QR code
