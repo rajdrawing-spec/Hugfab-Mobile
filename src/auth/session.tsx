@@ -22,6 +22,7 @@ import {
 import { startSessionRefresh, supabase } from '@/lib/supabase';
 import { signOutOtherDevices, signOutThisDevice } from './sign-out';
 import { requestPasswordReset } from './password-reset';
+import { authErrorMessage } from './auth-error';
 import { env, features } from '@/lib/env';
 
 export interface SessionUser {
@@ -124,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
           email: email.trim(),
           password,
         });
-        if (error) throw new AuthError(error.message);
+        if (error) throw new AuthError(authErrorMessage(error));
       },
       async signUp(email, password) {
         if (!supabase) throw new AuthError(NOT_CONFIGURED);
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
           email: email.trim(),
           password,
         });
-        if (error) throw new AuthError(error.message);
+        if (error) throw new AuthError(authErrorMessage(error));
         return { needsEmailConfirmation: data.session === null };
       },
       async signOut() {
@@ -141,7 +142,14 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
       },
       async signOutOthers() {
         if (!supabase) throw new AuthError(NOT_CONFIGURED);
-        await signOutOtherDevices(supabase.auth);
+        try {
+          await signOutOtherDevices(supabase.auth);
+        } catch (cause) {
+          // `sign-out.ts` rethrows Supabase's error as it came, which is right
+          // for a module that reports rather than renders. The sentence is
+          // this boundary's job, same as for sign-in.
+          throw new AuthError(authErrorMessage(cause));
+        }
       },
       async requestPasswordReset(email) {
         /*

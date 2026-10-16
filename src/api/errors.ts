@@ -120,6 +120,17 @@ export class ApiNetworkError extends Error {
   }
 }
 
+/**
+ * One sentence for "the request never arrived", wherever it happens.
+ *
+ * Exported because sign-in does not come through `apiFetch` — it goes to
+ * Supabase — and a phone with no signal must not say "Could not reach HugFab"
+ * on Home and `Failed to fetch` on the sign-in screen. See
+ * `src/auth/auth-error.ts`.
+ */
+export const NETWORK_MESSAGE =
+  'Could not reach HugFab. Check your connection and try again.';
+
 /** A request the app abandoned — a screen unmounted, a query was cancelled. */
 export class ApiAbortError extends Error {
   constructor() {
@@ -138,10 +149,7 @@ export class ApiAbortError extends Error {
  */
 export function describeError(error: unknown): { message: string; retryable: boolean } {
   if (error instanceof ApiNetworkError) {
-    return {
-      message: 'Could not reach HugFab. Check your connection and try again.',
-      retryable: true,
-    };
+    return { message: NETWORK_MESSAGE, retryable: true };
   }
 
   if (error instanceof ApiAbortError) {
