@@ -206,12 +206,40 @@ export default function ProductScreen(): React.JSX.Element {
           </View>
         ) : null}
 
-        {product.description ? (
+        {product.description || product.tags?.length ? (
           <View className="bg-surface mt-3 p-4">
             <Text step="h3">Details</Text>
-            <Text step="body" tone="muted" className="mt-2">
-              {product.description}
-            </Text>
+            {product.description ? (
+              <Text step="body" tone="muted" className="mt-2">
+                {product.description}
+              </Text>
+            ) : null}
+
+            {/*
+              The catalogue's own words for this product — "linen", "monsoon".
+              Read with `?.` because this type is mirrored by hand from another
+              repository and a response cached before the field existed has none.
+
+              Not `Chip`: that component is a filter control, and these are
+              labels. Giving them its pressed and selected states would promise
+              a tag search this app cannot do — the catalogue endpoint takes no
+              tag parameter, so a tappable tag would be a control for a backend
+              feature that does not exist.
+            */}
+            {product.tags?.length ? (
+              <View className="mt-3 flex-row flex-wrap">
+                {product.tags.map((tag) => (
+                  <View
+                    key={tag}
+                    className="bg-surface-2 mb-2 mr-2 rounded-full px-3 py-1.5"
+                  >
+                    <Text step="caption" tone="muted">
+                      {tag}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </View>
         ) : null}
 

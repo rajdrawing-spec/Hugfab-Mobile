@@ -93,6 +93,16 @@ export default function LoginScreen(): React.JSX.Element {
           onPress={() => void onSubmit()}
         />
 
+        {/* Below the button, not beside the password field: it is the way out of
+            a dead end, and the dead end is reached by trying to sign in first. */}
+        <View className="mt-4 flex-row justify-center">
+          <Link href="/auth/forgot-password">
+            <Text step="small" tone="primary">
+              Forgotten your password?
+            </Text>
+          </Link>
+        </View>
+
         <View className="mt-6 flex-row justify-center">
           <Text step="small" tone="muted">
             New to HugFab?{' '}

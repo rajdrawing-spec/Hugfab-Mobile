@@ -13,15 +13,18 @@ machine — not in a container, and not over `localhost`.
 
 ```bash
 npm install
-cp .env.example .env.local      # then fill in the two Supabase values
 npx expo start                  # add --tunnel if the phone is on another network
 ```
 
-Scan the QR code with **Expo Go** on an Android device.
+Scan the QR code with **Expo Go** on an Android device. No `.env` is needed: the
+live API and the web app's Supabase project are committed defaults in
+`src/lib/public-config.ts`, all three values being public already.
 
-`EXPO_PUBLIC_API_BASE_URL` must be reachable *from the phone*: either
-`https://hugfab.com`, or your laptop's LAN address (`http://192.168.x.x:3000`) when
-you are running `next dev`. `localhost` means the phone itself and will always fail.
+To point it somewhere else — a local `next dev`, a staging project — copy
+`.env.example` to `.env.local` and set what you want to override. The API base
+URL must be reachable *from the phone*: your laptop's LAN address
+(`http://192.168.x.x:3000`), never `localhost`, which on a phone means the phone
+and will always fail.
 
 ## Checks
 

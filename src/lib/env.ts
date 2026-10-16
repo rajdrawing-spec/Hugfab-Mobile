@@ -10,7 +10,17 @@
  * Only `EXPO_PUBLIC_*` reaches the running app, and it is inlined into the bundle
  * at build time. Everything here is therefore public by construction: the anon
  * key, which RLS constrains, and a base URL. No secret may ever be added.
+ *
+ * Each value falls back to `publicConfig` — the production HugFab backend,
+ * committed, because all three are already public (see `public-config.ts`). So
+ * the app is configured out of the box and an environment variable is an
+ * override, for a local `next dev` or a staging project, rather than a
+ * precondition. `features` is therefore true in a normal build, and false only
+ * where `public-config.ts` itself was emptied — so the screens behind it keep
+ * their unconfigured state and the tests that cover it still mean something.
  */
+
+import { publicConfig } from './public-config';
 
 function read(value: string | undefined): string | null {
   const trimmed = value?.trim();
@@ -27,9 +37,12 @@ function normaliseBaseUrl(value: string | null): string | null {
 }
 
 export const env = {
-  apiBaseUrl: normaliseBaseUrl(read(process.env.EXPO_PUBLIC_API_BASE_URL)),
-  supabaseUrl: read(process.env.EXPO_PUBLIC_SUPABASE_URL),
-  supabaseAnonKey: read(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY),
+  apiBaseUrl: normaliseBaseUrl(
+    read(process.env.EXPO_PUBLIC_API_BASE_URL) ?? publicConfig.apiBaseUrl,
+  ),
+  supabaseUrl: read(process.env.EXPO_PUBLIC_SUPABASE_URL) ?? publicConfig.supabaseUrl,
+  supabaseAnonKey:
+    read(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ?? publicConfig.supabaseAnonKey,
 } as const;
 
 export const features = {
@@ -40,13 +53,14 @@ export const features = {
 } as const;
 
 /**
- * What a screen shows when a feature is switched off. Names the variable,
- * because the person reading it on a test device is usually the person who can
- * set it.
+ * What a screen shows when a feature is switched off. Names where the value
+ * comes from, because the person reading it on a test device is usually the
+ * person who can set it — and since `public-config.ts` carries a default, this
+ * now means somebody emptied that too.
  */
 export function missingConfigMessage(): string | null {
   if (!features.api) {
-    return 'EXPO_PUBLIC_API_BASE_URL is not set, so there is nothing to load. Copy .env.example to .env.local and restart the dev server.';
+    return 'There is no API base URL, so there is nothing to load. Set EXPO_PUBLIC_API_BASE_URL (.env.local) or restore the default in src/lib/public-config.ts, then restart the dev server.';
   }
   return null;
 }

@@ -1,0 +1,57 @@
+# The gates a contributor runs locally, run again on every pull request.
+#
+# Until now this repository had no CI at all: a pull request showed no checks,
+# so a reviewer had only the author's word that typecheck and lint were clean.
+# With a test suite now in the repo that is a real hole — nothing would have run
+# it.
+#
+# The export step is the one that costs a minute and earns it: `tsc` proves the
+# types agree, and only a bundle proves Metro can actually resolve and compile
+# what they describe.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push supersedes the run in flight for the same ref.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: typecheck · lint · format · test · bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `ci` rather than `install`: it installs exactly the lockfile and fails
+      # if package.json and the lockfile disagree, which is the state that let
+      # react-dom resolve to a version React was not pinned to.
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Format
+        run: npx prettier --check .
+
+      - name: Test
+        run: npm test
+
+      # Proves the Android bundle still builds. Not a device test and not an
+      # API test — see docs/PRODUCTION-READINESS.md for what remains unverified.
+      - name: Bundle for Android
+        run: npx expo export --platform android --output-dir /tmp/expo-export
