@@ -57,12 +57,37 @@ export class ApiError extends Error {
     this.requestId = requestId;
   }
 
-  /** Per-field messages from a `BAD_REQUEST`, for a form. */
-  get fieldErrors(): Record<string, string[]> | null {
+  /**
+   * One message per field from a `BAD_REQUEST`, for a form.
+   *
+   * **The value is a string, not an array**, and an earlier version of this
+   * getter had it the other way round. The web app builds `details.fields` with
+   * `fieldErrors()` in `src/modules/addresses/schema.ts`, which keeps the
+   * *first* issue per path:
+   *
+   *     out[key] ??= issue.message;   // Record<string, string>
+   *
+   * and `docs/api.md` says so where it documents the address routes: "a
+   * `BAD_REQUEST` whose `details.fields` maps field → message". The table
+   * earlier in that file says "messages", which is what the wrong type was read
+   * off. A form indexing `[0]` into a string gets its first *character*, so the
+   * field under "Enter the state" would have read `E`.
+   *
+   * Both shapes are accepted and normalised rather than one being trusted: this
+   * is a cross-repository contract, the two sentences in `docs/api.md` disagree,
+   * and a `string[]` arriving one day should put a sentence on the form instead
+   * of `["..."]`.
+   */
+  get fieldErrors(): Record<string, string> | null {
     const fields = this.details?.fields;
-    return fields && typeof fields === 'object'
-      ? (fields as Record<string, string[]>)
-      : null;
+    if (!fields || typeof fields !== 'object') return null;
+
+    const out: Record<string, string> = {};
+    for (const [field, value] of Object.entries(fields as Record<string, unknown>)) {
+      const message = Array.isArray(value) ? value[0] : value;
+      if (typeof message === 'string' && message.length > 0) out[field] = message;
+    }
+    return out;
   }
 
   /** Seconds to wait, on a `RATE_LIMITED`. */
@@ -95,6 +120,17 @@ export class ApiNetworkError extends Error {
   }
 }
 
+/**
+ * One sentence for "the request never arrived", wherever it happens.
+ *
+ * Exported because sign-in does not come through `apiFetch` — it goes to
+ * Supabase — and a phone with no signal must not say "Could not reach HugFab"
+ * on Home and `Failed to fetch` on the sign-in screen. See
+ * `src/auth/auth-error.ts`.
+ */
+export const NETWORK_MESSAGE =
+  'Could not reach HugFab. Check your connection and try again.';
+
 /** A request the app abandoned — a screen unmounted, a query was cancelled. */
 export class ApiAbortError extends Error {
   constructor() {
@@ -113,10 +149,7 @@ export class ApiAbortError extends Error {
  */
 export function describeError(error: unknown): { message: string; retryable: boolean } {
   if (error instanceof ApiNetworkError) {
-    return {
-      message: 'Could not reach HugFab. Check your connection and try again.',
-      retryable: true,
-    };
+    return { message: NETWORK_MESSAGE, retryable: true };
   }
 
   if (error instanceof ApiAbortError) {

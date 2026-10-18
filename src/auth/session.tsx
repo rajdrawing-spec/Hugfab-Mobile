@@ -20,7 +20,10 @@ import {
   type ReactNode,
 } from 'react';
 import { startSessionRefresh, supabase } from '@/lib/supabase';
-import { features } from '@/lib/env';
+import { signOutOtherDevices, signOutThisDevice } from './sign-out';
+import { requestPasswordReset } from './password-reset';
+import { authErrorMessage } from './auth-error';
+import { env, features } from '@/lib/env';
 
 export interface SessionUser {
   id: string;
@@ -37,6 +40,17 @@ export interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
+  /**
+   * End every other session and keep this one. Throws on failure, unlike
+   * `requestPasswordReset` — see `sign-out.ts` for why the two differ.
+   */
+  signOutOthers: () => Promise<void>;
+  /**
+   * Ask for a reset link. **Resolves whether or not the address is registered**
+   * — deliberately, so the screen cannot become an account-enumeration oracle.
+   * See `password-reset.ts`; do not "improve" this by reporting the outcome.
+   */
+  requestPasswordReset: (email: string) => Promise<void>;
 }
 
 export interface SignUpResult {
@@ -111,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
           email: email.trim(),
           password,
         });
-        if (error) throw new AuthError(error.message);
+        if (error) throw new AuthError(authErrorMessage(error));
       },
       async signUp(email, password) {
         if (!supabase) throw new AuthError(NOT_CONFIGURED);
@@ -119,12 +133,32 @@ export function AuthProvider({ children }: { children: ReactNode }): React.JSX.E
           email: email.trim(),
           password,
         });
-        if (error) throw new AuthError(error.message);
+        if (error) throw new AuthError(authErrorMessage(error));
         return { needsEmailConfirmation: data.session === null };
       },
       async signOut() {
         if (!supabase) return;
-        await supabase.auth.signOut();
+        await signOutThisDevice(supabase.auth);
+      },
+      async signOutOthers() {
+        if (!supabase) throw new AuthError(NOT_CONFIGURED);
+        try {
+          await signOutOtherDevices(supabase.auth);
+        } catch (cause) {
+          // `sign-out.ts` rethrows Supabase's error as it came, which is right
+          // for a module that reports rather than renders. The sentence is
+          // this boundary's job, same as for sign-in.
+          throw new AuthError(authErrorMessage(cause));
+        }
+      },
+      async requestPasswordReset(email) {
+        /*
+         * Returning silently when Supabase or the base URL is missing keeps the
+         * promise this function makes: one answer for every outcome. The screen
+         * is unreachable without `available` anyway.
+         */
+        if (!supabase || !env.apiBaseUrl) return;
+        await requestPasswordReset(supabase.auth, email, env.apiBaseUrl);
       },
     }),
     [status, user],

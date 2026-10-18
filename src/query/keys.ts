@@ -12,6 +12,7 @@ export const queryKeys = {
   products: (filters: ProductFilters) => ['products', filters] as const,
   product: (slug: string) => ['product', slug] as const,
   accountSummary: () => ['account', 'summary'] as const,
+  addresses: () => ['account', 'addresses'] as const,
   wishlist: () => ['wishlist'] as const,
   cart: () => ['cart'] as const,
   orders: () => ['orders'] as const,
