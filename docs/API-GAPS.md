@@ -4,6 +4,10 @@ What the mobile app needs from `rajdrawing-spec/HUGFAB-AI` and does not have.
 
 ## Status
 
+**§3 is built and awaiting review** on HUGFAB-AI's
+`claude/mobile-cart-option-a` — the cart, the deals and checkout, keyed on the
+signed-in user. See that section.
+
 **§1, §2, §4, §5 and §6 are MERGED.** Pull request #173 landed on HUGFAB-AI
 `main` on 2026-10-06 as `2fbea5a`. Bearer authentication, the wishlist, orders
 and the address book are routes there now, and `GET /api/account/summary`
@@ -151,7 +155,19 @@ know.
 
 ---
 
-## 3. Cart — NOT BUILT: needs a product decision first
+## 3. Cart — DECIDED AND BUILT: option A, awaiting review and deploy
+
+**Option A was chosen on 19 October** and built the same day on HUGFAB-AI's
+`claude/mobile-cart-option-a`: `GET /api/cart`, `POST /api/cart/items`,
+`PATCH`/`DELETE /api/cart/items/:itemId`, `POST /api/cart/deals`,
+`DELETE /api/cart/deals/:cartDealId` and `POST /api/checkout`, all keyed on
+`requireApiUser()`. `docs/BACKEND-REQUESTS.md` is the request list those
+changes answer; `docs/api.md` in the web repo documents the contract that
+shipped. Not merged and not deployed at the time of writing, so the app still
+meets a 404 until it is.
+
+The analysis below is kept because it is why the decision went the way it did,
+not because anything in it is still open.
 
 **Verified against `main`** (`src/modules/cart/service.ts`, `repository.ts`) on
 2026-09-30, not inferred. The web cart's architecture is incompatible with a

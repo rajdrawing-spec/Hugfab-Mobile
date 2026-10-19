@@ -230,6 +230,7 @@ export interface CartLine {
   productId: string;
   title: string;
   slug: string;
+  sku: string | null;
   size: string | null;
   color: string | null;
   imageUrl: string | null;
@@ -240,10 +241,45 @@ export interface CartLine {
   available: boolean;
   /** Null means stock is not tracked, not that none is held. */
   stock: number | null;
+  /**
+   * Set on a unit of a HUGFAB Deal: the deal in the bag this line belongs to.
+   * A bundle arrives as several one-unit lines sharing this id, each priced at
+   * its share of the deal price — so a line with one must be drawn under its
+   * deal in `Cart.deals`, never on its own, where its price reads as wrong.
+   */
+  cartDealId: string | null;
+  /** Set on a Live flash-deal line: the claim holding one unit at the deal price. */
+  dealClaimId: string | null;
+  /** When a Live deal's hold lapses and the unit goes back to stock. */
+  holdExpiresAt: string | null;
+  /** Today's price a deal was cut from, for the struck-through figure. */
+  referencePrice: Money | null;
+  /** The retailer's "was" price, only when above today's price. */
+  mrp: Money | null;
+}
+
+/** A HUGFAB Deal in the bag, grouping the lines that carry its `cartDealId`. */
+export interface CartDeal {
+  cartDealId: string;
+  dealId: string;
+  slug: string;
+  title: string;
+  template: string;
+  returnPolicy: string;
+  units: number;
+  /** Null when the deal can no longer be priced — ended, or an item went. */
+  price: Money | null;
+  regular: Money | null;
+  reference: Money | null;
+  savings: Money | null;
+  available: boolean;
+  /** Why not, when not: `ended`, `unavailable`, … */
+  reason: string | null;
 }
 
 export interface Cart {
   lines: CartLine[];
+  deals: CartDeal[];
   /** The database's figure. Never recomputed here. */
   subtotal: Money;
   mrpTotal?: Money | null;
@@ -251,6 +287,27 @@ export interface Cart {
   lineCount: number;
   /** Non-zero blocks checkout rather than hiding the lines. */
   unavailable: number;
+  currency: string;
+}
+
+/**
+ * What `POST /api/checkout` answers with.
+ *
+ * `payUrl` is the website's own payment page for this order, reachable by order
+ * id. The app opens it in a browser rather than taking payment itself: Razorpay
+ * is a web checkout there, which is why no native payment module is needed.
+ * The server builds the URL so a change of domain needs no release.
+ */
+export interface PlacedOrder {
+  orderId: string;
+  orderNumber: string;
+  total: Money;
+  /** After points and wallet credit. Zero means it is already settled. */
+  payable: Money;
+  discount: Money;
+  pointsApplied: Money;
+  walletApplied: Money;
+  payUrl: string;
 }
 
 /** docs/API-GAPS.md §5. */

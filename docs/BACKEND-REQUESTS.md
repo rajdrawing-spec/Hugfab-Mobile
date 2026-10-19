@@ -286,15 +286,27 @@ region, and retention periods.
 
 | | Change | Repo | Blocking a release? |
 |---|---|---|---|
-| R1 | `findCartForUser` query | HUGFAB-AI | Yes, with R2–R3 |
-| R2 | User-keyed cart service entry points | HUGFAB-AI | Yes |
-| R3 | Cart + checkout routes | HUGFAB-AI | Yes |
+| R1 | `findCartForUser` query | HUGFAB-AI | **Approved and built** — `claude/mobile-cart-option-a` |
+| R2 | User-keyed cart service entry points | HUGFAB-AI | **Approved and built** — `src/modules/cart/api.ts` |
+| R3 | Cart + checkout routes | HUGFAB-AI | **Approved and built**, awaiting review and deploy |
 | R4 | Account deletion, in-app and web | HUGFAB-AI | **Yes — store rejection** |
 | R5 | `GET /api/homepage` | HUGFAB-AI | No |
 | R6 | Reviews over HTTP | HUGFAB-AI | No |
 | R7 | Notifications over HTTP | HUGFAB-AI | No |
 | R8 | Community over HTTP | HUGFAB-AI | No |
 
-Once R1–R3 are approved and built, this app's Bag, address step and order
-confirmation are mobile work that needs no further backend change, and payment
-is the existing web page.
+R1–R3 were approved on 19 October and built the same day, on HUGFAB-AI's
+`claude/mobile-cart-option-a`. `service.ts` was not edited, so the website's
+cookie cart is untouched; the branch adds one query, one user-keyed module and
+six routes, and `docs/api.md` there documents the contract. 2969 tests pass.
+
+The app's side is built too: `src/api/cart.ts`, a Bag that groups a bundle's
+units under their deal, and `app/checkout.tsx`, which picks a saved address,
+places the order and opens `payUrl` for the payment step only.
+
+**Neither half has met the other.** The branch is not merged or deployed, and
+no request has been made against the real routes. That is `docs/DEVICE-QA.md`'s
+job once it is live.
+
+The remaining decisions are still open: two carts for one user (the newest wins
+today), what account deletion keeps, and whether R6–R8 are in this release.
