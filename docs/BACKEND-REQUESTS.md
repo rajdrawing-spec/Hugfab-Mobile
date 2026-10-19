@@ -289,7 +289,7 @@ region, and retention periods.
 | R1 | `findCartForUser` query | HUGFAB-AI | **Approved and built** — `claude/mobile-cart-option-a` |
 | R2 | User-keyed cart service entry points | HUGFAB-AI | **Approved and built** — `src/modules/cart/api.ts` |
 | R3 | Cart + checkout routes | HUGFAB-AI | **Approved and built**, awaiting review and deploy |
-| R4 | Account deletion, in-app and web | HUGFAB-AI | **Yes — store rejection** |
+| R4 | Account deletion, in-app and web | HUGFAB-AI | **Built** — one migration awaits your approval, below |
 | R5 | `GET /api/homepage` | HUGFAB-AI | No |
 | R6 | Reviews over HTTP | HUGFAB-AI | No |
 | R7 | Notifications over HTTP | HUGFAB-AI | No |
@@ -308,5 +308,24 @@ places the order and opens `payUrl` for the payment step only.
 no request has been made against the real routes. That is `docs/DEVICE-QA.md`'s
 job once it is live.
 
-The remaining decisions are still open: two carts for one user (the newest wins
-today), what account deletion keeps, and whether R6–R8 are in this release.
+R4 was built on 19 October, on the same branch, with the web page Google
+requires and the in-app path Apple requires behind one service. Reading the
+foreign keys first changed the design and turned up one thing the proposal had
+not: **seven columns are `on delete restrict` and `not null`, so Postgres
+refuses the delete outright.** Six belong to sellers and admins. The seventh,
+`plus_payments.user_id`, belongs to any shopper who ever bought HugFab Plus —
+they cannot be deleted at all.
+
+`supabase/migrations/20261019090000_plus_payments_anonymise_on_delete.sql`
+fixes that the way `orders` already works: the payment is kept, without a name.
+**It is written and not applied — it needs your approval**, since it was not in
+the proposal you approved. Until then that case answers honestly rather than
+appearing to work. HUGFAB-AI's `docs/account-deletion.md` has the detail.
+
+Three consequences of the cascades are worth a decision rather than a
+discovery, and are listed there too: reviews and community posts are **deleted
+rather than anonymised**, and the points and wallet ledgers go with them.
+
+Still open: two carts for one user (the newest wins today), the `plus_payments`
+migration, whether the cascade behaviour above is what you want, and whether
+R6–R8 are in this release.

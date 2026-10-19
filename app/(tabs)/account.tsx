@@ -349,7 +349,42 @@ function SecuritySection(): React.JSX.Element {
           {error}
         </Text>
       ) : null}
+
+      <DeleteAccountRow />
     </View>
+  );
+}
+
+/**
+ * The way out.
+ *
+ * Apple requires an app that creates accounts to offer deletion **inside the
+ * app** rather than by email, so this is not a nicety — without it the app is
+ * rejected. It sits under Security rather than in the menu above because it
+ * belongs with the other things a person does when something has gone wrong,
+ * and because a destructive row among "Wishlist" and "Bag" invites the tap it
+ * must not get.
+ *
+ * The confirmation lives on the screen it opens, not in a dialog here: what is
+ * deleted and what is kept takes more words than an alert should carry.
+ */
+function DeleteAccountRow(): React.JSX.Element {
+  const router = useRouter();
+
+  return (
+    <>
+      <Text step="small" tone="muted" className="mt-5">
+        Closing your account deletes it and the personal data behind it. Orders are kept
+        as financial records, without your name.
+      </Text>
+      <Button
+        label="Close my account"
+        variant="text"
+        size="sm"
+        className="mt-1 self-start"
+        onPress={() => router.push('/account/delete')}
+      />
+    </>
   );
 }
 
