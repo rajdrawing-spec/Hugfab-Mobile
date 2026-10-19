@@ -289,12 +289,25 @@ and the Bag has to group a bundle's units under it. That is more work than this
 section estimated a week ago, and it is worth knowing before the decision rather
 than after.
 
-### Checkout
+### Checkout — this was too pessimistic; corrected 19 October
 
-Out of scope for Phase 1 either way. Razorpay's SDK is native and the app runs
-in Expo Go, so the Bag's checkout button opens `https://hugfab.com/cart`. That
-hand-off must say plainly that payment happens on the website and that signing in
-again may be required — it does today. See `docs/PLAN.md` Phase 2.
+This section used to say checkout was out of scope either way, because
+Razorpay's SDK is native and the app runs in Expo Go, so the Bag's button should
+open `https://hugfab.com/cart`.
+
+Re-reading `main` at `1961413` shows that is not required.
+`src/app/(shop)/checkout/[orderId]/page.tsx` is reachable **by order id alone**
+— a uuid, deliberately so, because guests have no account to find an order
+through — and `pay-button.tsx` takes payment with **Razorpay's web checkout
+script in a browser**, not a native SDK. Since `12a77ed` the page also
+reconciles the payment itself when the webhook is late.
+
+So the app can keep the Bag and the address step native, place the order over
+HTTP, and hand off only the payment step to that page. No native module, no
+Expo Go problem, no payment code in this app at all.
+
+The full request list is `docs/BACKEND-REQUESTS.md`, which supersedes the
+contract sketch above.
 
 ---
 
